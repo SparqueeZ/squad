@@ -1,0 +1,25 @@
+version: "3.8"
+services:
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/userdb
+      - JWT_SECRET=your_jwt_secret
+    depends_on:
+      - mongo
+
+  message-service:
+    build: ./services/message-service
+    ports:
+      - "3002:3002"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/messagedb
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
