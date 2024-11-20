@@ -43,6 +43,7 @@ import Icon from "./lib/Icon.vue";
           display: flex;
           width: 24px;
           fill: none;
+          stroke: #fff;
           color: #fff;
         }
         &:hover {

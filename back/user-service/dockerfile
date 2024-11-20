@@ -1,0 +1,14 @@
+# Utiliser l'image Node.js
+FROM node:22
+# Définir le répertoire de travail
+WORKDIR /usr/src/app
+
+# Copier les fichiers
+COPY package*.json ./
+# RUN npm install
+
+# Copier le reste
+COPY . .
+
+# Commande par défaut
+CMD ["npm", "run", "start"]
