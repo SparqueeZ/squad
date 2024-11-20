@@ -1,17 +1,23 @@
-// user-service/index.js
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-app.use(express.json());
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
 
-const users = [{ id: 1, name: "John Doe" }];
+  socket.on("message", (msg) => {
+    console.log("Message received:", msg);
+    socket.broadcast.emit("message", msg);
+  });
 
-app.get("/users", (req, res) => {
-  res.json(users);
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });
 
-app.get("/", (req, res) => {
-  res.send("User Service test");
-});
-
-app.listen(3002, () => console.log("User Service running on port 3002"));
+const PORT = 3003;
+server.listen(PORT, () => console.log(`Chat service running on port ${PORT}`));

@@ -1,7 +1,6 @@
 {
-  "name": "auth-service",
+  "name": "service-name",
   "version": "1.0.0",
-  "description": "Service d'authentification",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -9,10 +8,9 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.0"
+    "axios": "^1.4.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
-  },
-  "license": "MIT"
+    "nodemon": "^3.0.0"
+  }
 }
