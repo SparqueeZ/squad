@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from "vue-router";
 import LoginView from "../views/LoginView.vue";
 import ChatRoom from "../views/ChatRoom.vue";
+import RegisterView from "../views/RegisterView.vue";
 import AppLayout from "../layouts/AppLayout.vue";
 // import NotFound from "../views/NotFound.vue"; // Exemple pour la page 404
 
 const routes = [
   { path: "/", component: LoginView },
+  { path: "/register", component: RegisterView },
   {
     path: "/chat",
     component: AppLayout,
