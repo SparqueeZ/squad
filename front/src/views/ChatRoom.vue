@@ -63,7 +63,7 @@
         />
         <button type="submit">Envoyer</button>
       </form>
-      <Icon name="encrypt" />
+      <Icon name="microphone" />
     </div>
   </div>
 </template>

@@ -1,0 +1,24 @@
+# Dockerfile pour User Service
+FROM node:18
+
+# Définir le répertoire de travail dans le conteneur
+WORKDIR /app
+
+# Copier les fichiers package.json et package-lock.json
+COPY package*.json ./
+
+# Installer les dépendances
+# RUN npm install
+# RUN npm install --save-dev nodemon
+
+# Copier tout le code source dans le conteneur
+COPY . .
+
+# Exposer le port du service
+EXPOSE 3002
+
+RUN chown -R node:node /app
+USER node
+
+# Démarrer l'application
+CMD ["nodemon", "index.js"]

@@ -1,0 +1,52 @@
+services:
+  auth-service:
+    build:
+      context: ./auth-service
+    volumes:
+      - ./auth-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DB_PASSWORD=${DB_PASSWORD}
+    command: npm run dev
+    ports:
+      - "3001:3001"
+
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - DB_PASSWORD=${DB_PASSWORD}
+    networks:
+      - app-network
+
+  user-service:
+    container_name: user-service-module
+    build:
+      context: ./user-service
+    volumes:
+      - ./user-service:/app
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+    ports:
+      - "3003:3003"
+    networks:
+      - app-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    volumes:
+      - ./api-gateway:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DB_PASSWORD=${DB_PASSWORD}
+    command: npm run dev
+    ports:
+      - "3000:3000"

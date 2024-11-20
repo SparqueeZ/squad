@@ -36,7 +36,7 @@ const login = () => {
   if (username.value && password.value) {
     user.login(username.value, password.value);
     if (user.username) {
-      router.push("/chat/673382c2f30357627ee996e4");
+      router.push("/chat/673672da816c66f9b8c7d4ff");
     } else {
       console.log("Failed to log in");
     }
