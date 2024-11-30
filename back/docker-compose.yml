@@ -10,6 +10,8 @@ services:
       - ./api-gateway:/usr/src/app
       - /usr/src/app/node_modules
     command: npm run dev
+    networks:
+      - app-network
 
   auth-service:
     build:
@@ -22,6 +24,8 @@ services:
       - ./auth-service:/usr/src/app
       - /usr/src/app/node_modules
     command: npm run dev
+    networks:
+      - app-network
 
   user-service:
     build:
@@ -34,6 +38,8 @@ services:
       - ./user-service:/usr/src/app
       - /usr/src/app/node_modules
     command: npm run dev
+    networks:
+      - app-network
 
   chat-service:
     build:
@@ -46,7 +52,9 @@ services:
       - ./chat-service:/usr/src/app
       - /usr/src/app/node_modules
     command: npm run dev
+    networks:
+      - app-network
 
 networks:
-  default:
+  app-network:
     driver: bridge
