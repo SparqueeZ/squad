@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 // Routes vers les services
-app.use("/api/auth-s", async (req, res) => {
+app.use("/api/auth", async (req, res) => {
   const { method, body } = req;
   try {
     const response = await axios({
@@ -19,7 +19,7 @@ app.use("/api/auth-s", async (req, res) => {
   }
 });
 
-app.use("/api/user-s", async (req, res) => {
+app.use("/api/user", async (req, res) => {
   const { method, body } = req;
   try {
     const response = await axios({
@@ -33,7 +33,7 @@ app.use("/api/user-s", async (req, res) => {
   }
 });
 
-app.use("/api/chatserv", async (req, res) => {
+app.use("/api/chat", async (req, res) => {
   const { method, body } = req;
   const userIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
   try {
@@ -53,4 +53,4 @@ app.use("/api/chatserv", async (req, res) => {
 });
 
 const PORT = 3000;
-app.listen(PORT, () => console.log(`API Gateway listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`Running on port ${PORT}`));

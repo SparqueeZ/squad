@@ -1,15 +1,23 @@
 const express = require("express");
+const mongoose = require("mongoose");
+const dbConfig = require("./config/db");
+const axios = require("./config/axios");
+const cookieParser = require("cookie-parser");
+
 const app = express();
 app.use(express.json());
-
-app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  if (username === "test" && password === "password") {
-    res.json({ token: "fake-jwt-token" });
-  } else {
-    res.status(401).json({ error: "Invalid credentials" });
-  }
-});
-
+app.use(cookieParser());
+const authRoutes = require("./routes/authRoutes");
 const PORT = 3001;
-app.listen(PORT, () => console.log(`Auth service running on port ${PORT}`));
+
+app.use("/", authRoutes);
+
+mongoose
+  .connect(dbConfig.url)
+  .then(() => {
+    console.log("Connected to MongoDB");
+
+    // Démarrer le serveur
+    app.listen(PORT, () => console.log(`Running on port ${PORT}`));
+  })
+  .catch((err) => console.error("MongoDB connection error:", err));

@@ -33,3 +33,37 @@ exports.createMessage = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+exports.getUnreadMessagesCount = async (req, res) => {
+  const { roomIds, username } = req.body;
+  try {
+    const unreadMessages = await Message.aggregate([
+      { $match: { roomId: { $in: roomIds }, viewedBy: { $ne: username } } },
+      { $group: { _id: "$roomId", count: { $sum: 1 } } },
+    ]);
+
+    const result = roomIds.map((roomId) => {
+      const message = unreadMessages.find(
+        (item) => item._id.toString() === roomId
+      );
+      const data = {
+        id: roomId,
+        count: message ? message.count : 0,
+      };
+      return data;
+    });
+
+    res.json({ unreadMessages: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getMessageById = async (req, res) => {
+  try {
+    const message = await Message.findById(req.query.id);
+    res.json(message);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

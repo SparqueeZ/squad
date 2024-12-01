@@ -6,10 +6,10 @@ WORKDIR /usr/src/app
 
 # Copier les fichiers
 COPY package*.json ./
-# RUN npm install
+RUN npm install --omit=dev
 
 # Copier le reste
 COPY . .
 
 # Commande par défaut
-CMD ["npm", "run", "start"]
+CMD ["node", "index.js"]
