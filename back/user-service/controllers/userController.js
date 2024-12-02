@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const axios = require("../config/axios");
 
 exports.getAllUsers = async (req, res) => {
+  console.log("Fetching all users");
   try {
     const users = await User.find();
     res.json(users);
@@ -13,6 +14,7 @@ exports.getAllUsers = async (req, res) => {
 };
 
 exports.createUsers = async (req, res) => {
+  console.log("Creating new user");
   try {
     const newUser = new User(req.body);
     const savedUser = await newUser.save();
@@ -23,6 +25,7 @@ exports.createUsers = async (req, res) => {
 };
 
 exports.loginUser = async (req, res) => {
+  console.log("User login attempt");
   const { username, password } = req.body;
 
   try {
@@ -60,51 +63,34 @@ exports.loginUser = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
+  console.log("User logout");
   res.clearCookie("token");
   res.json({ message: "User logged out" });
 };
 
 exports.getProfile = async (req, res) => {
+  console.log("Fetching user profile");
   res.json(req.user);
 };
 
-exports.profile = async (req, res) => {
-  const user = req.user;
-  try {
-    const unreadMessages = await getUnreadMessagesCount(
-      user.rooms,
-      user.username
-    );
-    const rooms = user.rooms.map((roomId) => ({
-      id: roomId,
-      unreadMessages:
-        unreadMessages.find((msg) => msg.id === roomId)?.count || 0,
-      // Add lastMessage or other properties if needed
-    }));
-    res.json({
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      rooms,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 exports.getFullProfile = async (req, res) => {
+  console.log("Fetching full user profile");
   const user = req.user;
   try {
     const unreadMessages = await getUnreadMessagesCount(
       user.rooms,
       user.username
     );
-    const rooms = user.rooms.map((roomId) => ({
-      id: roomId,
-      unreadMessages:
-        unreadMessages.unreadMessages.find((msg) => msg.id === roomId)?.count ||
-        0,
-    }));
+    const rooms = await Promise.all(
+      user.rooms.map(async (roomId) => ({
+        data: await getRoomInformationsById(roomId),
+        unreadMessages:
+          unreadMessages.unreadMessages.find((msg) => msg.id === roomId)
+            ?.count || 0,
+        lastMessages: await getLastMessages(roomId),
+      }))
+    );
+
     res.json({
       general: {
         username: user.username,
@@ -113,12 +99,27 @@ exports.getFullProfile = async (req, res) => {
       },
       rooms,
     });
+    console.log("Full profile sent");
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+async function getLastMessages(roomId) {
+  try {
+    const response = await axios.chatService.get(
+      `http://localhost:3003/internal/last/${roomId}`
+    );
+    // console.log("response", response.data);
+    return response.data;
+  } catch (err) {
+    console.log(err);
+    throw new Error("Error fetching last messages");
+  }
+}
+
 exports.registerUser = async (req, res) => {
+  console.log("Registering new user");
   const { username, email, password, rooms } = req.body;
   rooms ? rooms : (rooms = ["673382c2f30357627ee996e4"]);
 
@@ -133,7 +134,8 @@ exports.registerUser = async (req, res) => {
 
 async function getRoomById(roomId) {
   try {
-    const response = await axios.chatService.get(`/api/rooms/${roomId}`);
+    const response = await axios.chatService.get(`/${roomId}`);
+    console.log("response", response.data);
     return response.data;
   } catch (err) {
     throw new Error("Error fetching room data");
@@ -141,6 +143,7 @@ async function getRoomById(roomId) {
 }
 
 exports.getUserRooms = async (req, res) => {
+  console.log("Fetching user rooms");
   const user = req.user;
   try {
     const rooms = await Promise.all(
@@ -150,12 +153,15 @@ exports.getUserRooms = async (req, res) => {
       })
     );
     res.json(rooms);
+    console.log(rooms);
   } catch (err) {
+    console.log(err.message);
     res.status(500).json({ error: err.message });
   }
 };
 
 exports.updateMessageViews = async (req, res) => {
+  console.log("Updating message views");
   const user = req.user;
   const { messageId } = req.body;
   try {
@@ -205,14 +211,27 @@ exports.updateMessageViewsLogic = updateMessageViewsLogic;
 
 async function getUnreadMessagesCount(roomIds, username) {
   try {
-    const response = await axios.chatService.post("/api/chat/internal/unread", {
-      roomIds,
-      username,
-    });
+    const response = await axios.chatService.post(
+      "http://localhost:3003/internal/unread",
+      {
+        roomIds,
+        username,
+      }
+    );
     console.log("response", response.data);
     return response.data;
   } catch (err) {
     console.log(err);
     throw new Error("Error fetching unread messages count");
+  }
+}
+
+async function getRoomInformationsById(roomId) {
+  try {
+    const response = await axios.chatService.get(`/room/internal/${roomId}`);
+    console.log("response", response.data);
+    return response.data;
+  } catch (err) {
+    throw new Error("Error fetching room data");
   }
 }

@@ -3,10 +3,13 @@ const mongoose = require("mongoose");
 const dbConfig = require("./config/db");
 const axios = require("./config/axios");
 const cookieParser = require("cookie-parser");
+const logMiddleware = require("./middlewares/logMiddleware");
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(logMiddleware);
+
 const userRoutes = require("./routes/userRoutes");
 const PORT = 3002;
 

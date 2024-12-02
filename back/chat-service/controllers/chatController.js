@@ -24,9 +24,26 @@ exports.getMessagesByRoomId = async (req, res) => {
   }
 };
 
+exports.getLastMessagesByRoomId = async (req, res) => {
+  try {
+    const messages = await Message.find({ roomId: req.params.roomId })
+      .sort({ createdAt: -1 })
+      .limit(10);
+    res.json(messages.reverse());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createMessage = async (req, res) => {
   try {
-    const newMessage = new Message(req.body);
+    console.log(req.body);
+    const message = {
+      roomId: req.body.room,
+      text: req.body.message.text,
+      sender: req.body.message.sender,
+    };
+    const newMessage = new Message(message);
     const savedMessage = await newMessage.save();
     res.status(201).json(savedMessage);
   } catch (err) {

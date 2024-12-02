@@ -14,6 +14,23 @@ async function getUserById(userId) {
   }
 }
 
+exports.getRoomInformations = async (req, res) => {
+  try {
+    const room = await Room.findById(req.params.roomId);
+    const response = {
+      id: room._id,
+      title: room.title,
+      description: room.description,
+      category: room.category,
+      private: room.private,
+      // users: room.users,
+    };
+    res.json(response);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find();
@@ -41,15 +58,15 @@ exports.createRoom = async (req, res) => {
     const newRoom = new Room(req.body);
     const savedRoom = await newRoom.save();
 
-    // Update users with the new room ID
-    const userIds = req.body.users;
-    await Promise.all(
-      userIds.map(async (userId) => {
-        const user = await getUserById(userId);
-        user.rooms.push(savedRoom._id);
-        await axios.put(`http://user-service:3002/api/users/${userId}`, user);
-      })
-    );
+    // // Update users with the new room ID
+    // const userIds = req.body.users;
+    // await Promise.all(
+    //   userIds.map(async (userId) => {
+    //     const user = await getUserById(userId);
+    //     user.rooms.push(savedRoom._id);
+    //     await axios.put(`http://user-service:3002/api/users/${userId}`, user);
+    //   })
+    // );
 
     res.status(201).json(savedRoom);
   } catch (err) {
