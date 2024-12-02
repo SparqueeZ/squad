@@ -1,7 +1,8 @@
 <template>
   <main class="chatroom-container">
     <Sidebar />
-    <messagesSidebar />
+    <messagesSidebar v-if="user.username" />
+    <div v-else class="errorMessageSidebar">Chargement messages sidebar</div>
     <section v-if="user.username" class="chatroom-container">
       <router-view></router-view>
     </section>
@@ -26,10 +27,12 @@ const room = useRoomStore();
 const user = useUserStore();
 import { useRoute } from "vue-router";
 const route = useRoute();
-onMounted(() => {
-  user.fetchProfile();
-  chat.fetchChatListByRoomId(route.params.id);
-  room.fetchRoomList();
+onMounted(async () => {
+  await user.fetchProfile();
+  await chat.fetchChatListByRoomId(route.params.id);
+  await room.fetchRoomList();
+  // console.log(user.username);
+  // setTimeout(() => {}, 1000);
 });
 </script>
 

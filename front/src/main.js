@@ -3,10 +3,8 @@ import App from "./App.vue";
 import { createPinia } from "pinia";
 import router from "./router";
 import { io } from "socket.io-client";
-const APIURL = import.meta.env.VITE_API_URL;
-
-// Remplacez '192.168.1.100' par l'adresse IP locale de votre machine
-const socket = io(APIURL);
+const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+const socket = io(APISOCKETURL);
 
 const app = createApp(App);
 app.config.globalProperties.$socket = socket;

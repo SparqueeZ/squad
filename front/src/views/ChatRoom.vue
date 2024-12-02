@@ -1,6 +1,6 @@
 <template>
   <div class="chat-room">
-    <canvas id="canvas"></canvas>
+    <!-- <canvas id="canvas"></canvas> -->
     <div class="message-header">
       <div class="chat-infos">
         <h1 class="chat-title" v-if="room.actual.room">
@@ -75,8 +75,8 @@ import Icon from "@/components/lib/Icon.vue";
 import { useRoute } from "vue-router";
 import { triggerConfetti } from "@/assets/lib/Confetti";
 
-const APIURL = import.meta.env.VITE_API_URL;
-const socket = io(APIURL);
+const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+const socket = io(APISOCKETURL);
 const newMessage = ref("");
 import { useUserStore } from "@/stores/userStore";
 import { useChatStore } from "@/stores/chatStore";
@@ -92,17 +92,17 @@ const messagesContainer = ref(null);
 const canvas = ref(null);
 
 const handleIsTyping = () => {
-  if (newMessage.value) {
-    socket.emit("isTyping", room.actual.room._id, user.username);
-  } else {
-    socket.emit("stoppedTyping", room.actual.room._id, user.username);
-  }
+  // if (newMessage.value) {
+  //   socket.emit("isTyping", room.actual.room._id, user.username);
+  // } else {
+  //   socket.emit("stoppedTyping", room.actual.room._id, user.username);
+  // }
 };
 
 const sendMessage = () => {
-  if (newMessage.value === "Gay") {
-    triggerConfetti(canvas.value, 5000); // Specify duration in milliseconds
-  }
+  // if (newMessage.value === "HB") {
+  //   triggerConfetti(canvas.value, 5000); // Specify duration in milliseconds
+  // }
   if (
     newMessage.value &&
     newMessage.value.trim() !== "" &&
@@ -116,7 +116,11 @@ const sendMessage = () => {
       roomId: route.params.id,
       viewedBy: ["Baptiste"],
     };
-    socket.emit("sendMessage", route.params.id, message);
+    const data = {
+      room: route.params.id,
+      message: message,
+    };
+    socket.emit("sendMessage", data);
     newMessage.value = "";
     scrollToBottom();
   }
@@ -149,57 +153,56 @@ const scrollToBottom = () => {
 };
 
 const stopTyping = () => {
-  socket.emit("stoppedTyping", room.actual.room._id, user.username);
+  // socket.emit("stoppedTyping", room.actual.room._id, user.username);
 };
 
 const startTyping = () => {
-  chat.chatList.forEach((message) => {
-    if (message.sender !== user.username) {
-      if (!message.viewedBy.includes(user.username)) {
-        socket.emit(
-          "messageViewed",
-          room.actual.room._id,
-          message._id,
-          user.username
-        );
-        message.viewedBy.push(user.username);
-      }
-    }
-  });
-  if (newMessage.value)
-    socket.emit("isTyping", room.actual.room._id, user.username);
+  // chat.chatList.forEach((message) => {
+  //   if (message.sender !== user.username) {
+  //     if (!message.viewedBy.includes(user.username)) {
+  //       socket.emit(
+  //         "messageViewed",
+  //         room.actual.room._id,
+  //         message._id,
+  //         user.username
+  //       );
+  //       message.viewedBy.push(user.username);
+  //     }
+  //   }
+  // });
+  // if (newMessage.value)
+  //   socket.emit("isTyping", room.actual.room._id, user.username);
 };
 
 const handleScroll = () => {
-  const container = messagesContainer.value;
-  const containerTop = container.scrollTop;
-  const containerBottom = containerTop + container.clientHeight;
-
-  chat.chatList.forEach((message) => {
-    const messageElement = document.getElementById(message._id);
-    if (messageElement) {
-      const messageTop = messageElement.offsetTop;
-      const messageBottom = messageTop + messageElement.clientHeight;
-
-      if (messageTop >= containerTop && messageBottom <= containerBottom) {
-        if (!message.viewedBy.includes(user.username)) {
-          socket.emit(
-            "messageViewed",
-            room.actual.room._id,
-            message._id,
-            user.username
-          );
-          message.viewedBy.push(user.username);
-        }
-      }
-    }
-  });
+  // const container = messagesContainer.value;
+  // const containerTop = container.scrollTop;
+  // const containerBottom = containerTop + container.clientHeight;
+  // chat.chatList.forEach((message) => {
+  //   const messageElement = document.getElementById(message._id);
+  //   if (messageElement) {
+  //     const messageTop = messageElement.offsetTop;
+  //     const messageBottom = messageTop + messageElement.clientHeight;
+  //     if (messageTop >= containerTop && messageBottom <= containerBottom) {
+  //       if (!message.viewedBy.includes(user.username)) {
+  //         socket.emit(
+  //           "messageViewed",
+  //           room.actual.room._id,
+  //           message._id,
+  //           user.username
+  //         );
+  //         message.viewedBy.push(user.username);
+  //       }
+  //     }
+  //   }
+  // });
 };
 
 onMounted(() => {
   canvas.value = document.getElementById("canvas");
   socket.emit("joinRoom", route.params.id);
   socket.on("receiveMessage", (message) => {
+    console.log(message);
     if (message.text.includes("Joyeux anniversaire")) {
       triggerConfetti(canvas.value, 5000);
     }
