@@ -18,4 +18,5 @@ router.post(
   authMiddleware,
   userController.updateMessageViews
 );
+router.post("/internal/:userId", userController.updateUserRooms);
 module.exports = router;

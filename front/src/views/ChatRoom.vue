@@ -200,14 +200,16 @@ const handleScroll = () => {
 
 onMounted(() => {
   canvas.value = document.getElementById("canvas");
-  socket.emit("joinRoom", route.params.id);
+  console.log(user.rooms);
+  user.rooms.forEach((r) => {
+    socket.emit("joinRoom", user.username, r.data.id);
+  });
   socket.on("receiveMessage", (message) => {
-    console.log(message);
     if (message.text.includes("Joyeux anniversaire")) {
       triggerConfetti(canvas.value, 5000);
     }
     chat.chatList.push(message);
-    room.setLastMessage(message);
+    user.updateLastMessageOfRoom(message, message.roomId);
     scrollToBottom();
   });
   socket.on("isTyping", (userData) => {
@@ -243,7 +245,6 @@ onUnmounted(() => {
 watch(
   () => route.params.id,
   (newId) => {
-    socket.emit("joinRoom", newId);
     chat.fetchChatListByRoomId(newId);
     room.fetchRoomById(newId);
     setTimeout(() => {

@@ -19,9 +19,9 @@ export const useRoomStore = defineStore("room", {
       try {
         const response = await axios.get("/api/user/rooms");
         this.roomList = response.data;
-        // console.log("RoomList : ", this.roomList);
+        console.log("RoomList : ", this.roomList);
       } catch (error) {
-        console.error("Erreur lors du fetchAllCourses : ", error);
+        console.error("Erreur lors du fetchRoomList : ", error);
       }
     },
     async fetchRoomById(roomId) {
@@ -49,10 +49,13 @@ export const useRoomStore = defineStore("room", {
       }
     },
     setLastMessage(message) {
+      // console.log(this.roomList);
+      // console.log(this.actual);
       // const room = this.roomList.forEach((r) => {
-      //   if (r.room.id === message.roomId) {
-      //     r.lastMessage = message;
-      //   }
+      //   console.log(r);
+      //   // if (r.room.id === message.roomId) {
+      //   //   r.lastMessage = message;
+      //   // }
       // });
     },
   },

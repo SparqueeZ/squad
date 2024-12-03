@@ -15,7 +15,7 @@ export const useChatStore = defineStore("chat", {
       // console.log(this.username);
     },
     async fetchChatListByRoomId(roomId) {
-      socket.emit("joinRoom", roomId);
+      // socket.emit("joinRoom", roomId);
       try {
         const response = await axios.get(
           `http://localhost:3000/api/chat/${roomId}`

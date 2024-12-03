@@ -45,19 +45,19 @@
                 <div class="message-sender">{{ r.data.title }}</div>
                 <div class="message-status">
                   <Icon v-if="r.seen" name="tickdouble" />
-                  <p class="message-sended-timing" v-if="r.lastMessages[9]">
-                    {{ getRelativeTime(r.lastMessages[9].timestamp) }}
+                  <p class="message-sended-timing" v-if="r.lastMessages[0]">
+                    {{ getRelativeTime(r.lastMessages[0].timestamp) }}
                   </p>
                 </div>
               </div>
               <div class="message-btm">
                 <p class="message-content">
                   <strong>{{
-                    r.lastMessages[9]
-                      ? `${r.lastMessages[9].sender} : `
+                    r.lastMessages[0]
+                      ? `${r.lastMessages[0].sender} : `
                       : "Aucun message envoyé."
                   }}</strong
-                  >{{ r.lastMessages[9] ? r.lastMessages[9].text : "" }}
+                  >{{ r.lastMessages[0] ? r.lastMessages[0].text : "" }}
                 </p>
                 <div class="message-status">
                   <Icon v-if="r.pinned" name="pin" />
@@ -80,9 +80,6 @@ import { useUserStore } from "@/stores/userStore";
 const user = useUserStore();
 const room = useRoomStore();
 const messages = ref([]);
-const rooms = ref([room.roomList]);
-
-console.log(user.rooms[0].lastMessages[9]);
 
 watchEffect(() => {
   room.roomList.lastMessage,

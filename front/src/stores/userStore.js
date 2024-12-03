@@ -44,8 +44,6 @@ export const useUserStore = defineStore("user", {
           this.role = profile.data.general.role;
           this.unreadMessages = profile.data.general.unreadMessages;
           this.rooms = profile.data.rooms;
-          // console.log(profile.data.general);
-          // console.log("Login success");
           return true;
         } else {
           router.push("/login");
@@ -64,6 +62,14 @@ export const useUserStore = defineStore("user", {
       } catch (error) {
         console.error("Erreur lors de l'updateMessageViews : ", error);
       }
+    },
+    async updateLastMessageOfRoom(message, roomId) {
+      this.rooms.forEach((room) => {
+        if (room.data.id === roomId) {
+          room.lastMessages.unshift(message);
+          console.warn(room.lastMessages);
+        }
+      });
     },
   },
   getters: {

@@ -40,16 +40,7 @@ exports.loginUser = async (req, res) => {
           .json({ message: "Invalid username or password" });
       }
     }
-    const token = jwt.sign(
-      {
-        role: user.role,
-        username: user.username,
-        email: user.email,
-        rooms: user.rooms,
-      },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const token = jwt.sign(JWT_SECRET, { expiresIn: "1h" });
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -74,22 +65,56 @@ exports.getProfile = async (req, res) => {
 };
 
 exports.getFullProfile = async (req, res) => {
-  console.log("Fetching full user profile");
+  console.log("[INFO] Fetching full user profile");
   const user = req.user;
   try {
+    const databaseUser = await User.findOne({
+      username: user.username,
+      email: user.email,
+    });
+    const databaseUserRooms = databaseUser.rooms;
     const unreadMessages = await getUnreadMessagesCount(
-      user.rooms,
+      databaseUserRooms,
       user.username
     );
     const rooms = await Promise.all(
-      user.rooms.map(async (roomId) => ({
-        data: await getRoomInformationsById(roomId),
-        unreadMessages:
-          unreadMessages.unreadMessages.find((msg) => msg.id === roomId)
-            ?.count || 0,
-        lastMessages: await getLastMessages(roomId),
-      }))
+      databaseUserRooms.map(async (roomId) => {
+        if (!roomId) {
+          console.error("[ERROR] Room ID is undefined");
+          return;
+        }
+        const roomInformations = await getRoomInformationsById(roomId);
+        if (!roomInformations) {
+          console.error(
+            `[ERROR] Room ${roomId} data is undefined, deleting room for user ${user.username}`
+          );
+          const userAimed = await User.findOne({
+            username: user.username,
+            email: user.email,
+          });
+          const roomToDeleteIndex = userAimed.rooms.indexOf(roomId);
+          userAimed.rooms.splice(roomToDeleteIndex, 1);
+          databaseUserRooms.splice(roomToDeleteIndex, 1);
+          user.rooms = userAimed.rooms;
+          if (await userAimed.save()) {
+            console.log(
+              `[SUCCESS] Room ${roomId}deleted successfully deleted from user ${user.username}`
+            );
+            return null;
+          } else {
+            console.error("[ERROR] Room deletion failed");
+          }
+        }
+        return {
+          data: roomInformations ? roomInformations : {},
+          unreadMessages:
+            unreadMessages.unreadMessages.find((msg) => msg.id === roomId)
+              ?.count || 0,
+          lastMessages: (await getLastMessages(roomId)) || [],
+        };
+      })
     );
+    const filteredRooms = rooms.filter((room) => room !== null);
 
     res.json({
       general: {
@@ -97,24 +122,26 @@ exports.getFullProfile = async (req, res) => {
         email: user.email,
         role: user.role,
       },
-      rooms,
+      rooms: filteredRooms, // Use the filtered rooms array
     });
-    console.log("Full profile sent");
+
+    console.log("[INFO] Full profile sent");
   } catch (err) {
+    console.error(err.message);
     res.status(500).json({ error: err.message });
   }
 };
 
 async function getLastMessages(roomId) {
+  console.log("[INFO] Fetching last messages for room", roomId.toString());
   try {
     const response = await axios.chatService.get(
       `http://localhost:3003/internal/last/${roomId}`
     );
-    // console.log("response", response.data);
+    // console.log("response", response.data, roomId);
     return response.data;
   } catch (err) {
     console.log(err);
-    throw new Error("Error fetching last messages");
   }
 }
 
@@ -135,27 +162,29 @@ exports.registerUser = async (req, res) => {
 async function getRoomById(roomId) {
   try {
     const response = await axios.chatService.get(`/${roomId}`);
-    console.log("response", response.data);
     return response.data;
   } catch (err) {
-    throw new Error("Error fetching room data");
+    console.error(err);
   }
 }
 
 exports.getUserRooms = async (req, res) => {
-  console.log("Fetching user rooms");
+  console.log(`[INFO] Fetching user rooms...`);
   const user = req.user;
   try {
     const rooms = await Promise.all(
       user.rooms.map(async (roomId) => {
-        const roomData = await getRoomById(roomId);
+        const roomData = await getRoomInformationsById(roomId);
         return roomData;
       })
     );
     res.json(rooms);
-    console.log(rooms);
+    console.info(`[SUCCESS] User rooms fetched successfully`);
   } catch (err) {
-    console.log(err.message);
+    console.error(
+      `[ERROR] Error fetching user ${req.params.userId} rooms`,
+      err.message
+    );
     res.status(500).json({ error: err.message });
   }
 };
@@ -210,6 +239,10 @@ async function saveMessage(message) {
 exports.updateMessageViewsLogic = updateMessageViewsLogic;
 
 async function getUnreadMessagesCount(roomIds, username) {
+  console.log(
+    "[INFO] Fetching unread messages count for rooms",
+    JSON.stringify(roomIds)
+  );
   try {
     const response = await axios.chatService.post(
       "http://localhost:3003/internal/unread",
@@ -218,20 +251,48 @@ async function getUnreadMessagesCount(roomIds, username) {
         username,
       }
     );
-    console.log("response", response.data);
+    console.log("[SUCCESS] Unread messages count fetched successfully");
     return response.data;
   } catch (err) {
-    console.log(err);
-    throw new Error("Error fetching unread messages count");
+    console.error(
+      "[ERROR] Error fetching unread messages count :",
+      err.message
+    );
   }
 }
 
 async function getRoomInformationsById(roomId) {
+  console.log("[INFO] Fetching room data for room", JSON.stringify(roomId));
+  if (!roomId) {
+    console.error("[ERROR] Room ID is undefined");
+    return;
+  }
   try {
     const response = await axios.chatService.get(`/room/internal/${roomId}`);
-    console.log("response", response.data);
+    console.log("[INFO] Room data fetched successfully");
     return response.data;
   } catch (err) {
-    throw new Error("Error fetching room data");
+    console.error("[ERROR] Error fetching room data :", err.message);
   }
 }
+
+exports.updateUserRooms = async (req, res) => {
+  console.log(
+    `[INFO] Updating user ${req.params.userId} rooms with room ${req.body.roomId}`
+  );
+  const userId = req.params.userId;
+  if (req.body.roomId) {
+    try {
+      const user = await User.findById(userId);
+      user.rooms.push(req.body.roomId);
+      const savedUser = await user.save();
+      res.json(savedUser);
+    } catch (err) {
+      console.error(err.message);
+      res.status(400).json({ error: err.message });
+    }
+  } else {
+    console.error("[ERROR] Missing room ID");
+    res.status(400).json({ error: "Missing room ID" });
+  }
+};

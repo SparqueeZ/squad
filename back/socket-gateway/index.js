@@ -16,14 +16,12 @@ const io = new Server(server, {
 app.use(express.json());
 
 io.on("connection", (socket) => {
-  console.log("Un client s'est connecté au Socket Gateway");
-
   // Initialiser les sockets
   chatSocket(io, socket);
   // anotherSocket(io, socket); // Initialisez d'autres sockets ici
 
   socket.on("disconnect", () => {
-    console.log("Un client s'est déconnecté du Socket Gateway");
+    // console.log("Un client s'est déconnecté du Socket Gateway");
   });
 });
 

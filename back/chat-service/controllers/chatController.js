@@ -2,6 +2,7 @@ const Message = require("../models/messageModel");
 const { getReadableTimestampParis } = require("../utils/date");
 
 exports.getAllMessages = async (req, res) => {
+  console.log("[INFO] Getting all messages");
   const timestamp = getReadableTimestampParis();
 
   const userIp = req.headers["x-forwarded-for"] || req.ip;
@@ -16,6 +17,7 @@ exports.getAllMessages = async (req, res) => {
 };
 
 exports.getMessagesByRoomId = async (req, res) => {
+  console.log("[INFO] Getting all messages for room", req.params.roomId);
   try {
     const messages = await Message.find({ roomId: req.params.roomId });
     res.json(messages);
@@ -25,17 +27,21 @@ exports.getMessagesByRoomId = async (req, res) => {
 };
 
 exports.getLastMessagesByRoomId = async (req, res) => {
+  console.log("[INFO] Getting last messages for room", req.params.roomId);
   try {
     const messages = await Message.find({ roomId: req.params.roomId })
-      .sort({ createdAt: -1 })
+      .sort({
+        timestamp: -1,
+      })
       .limit(10);
-    res.json(messages.reverse());
+    res.json(messages);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
 exports.createMessage = async (req, res) => {
+  console.log("[INFO] Creating new message");
   try {
     console.log(req.body);
     const message = {
@@ -52,6 +58,10 @@ exports.createMessage = async (req, res) => {
 };
 
 exports.getUnreadMessagesCount = async (req, res) => {
+  console.log(
+    "[INFO] Getting unread messages count for rooms",
+    req.body.roomIds
+  );
   const { roomIds, username } = req.body;
   try {
     const unreadMessages = await Message.aggregate([
