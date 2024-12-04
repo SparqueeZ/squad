@@ -8,8 +8,10 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
     volumes:
       - ./api-gateway:/usr/src/app
-      - /usr/src/app/node_modules
-    command: npm run dev
+      # - /usr/src/app/node_modules
+    command: node index.js
+    networks:
+      - app-network
 
   auth-service:
     build:
@@ -20,8 +22,10 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
     volumes:
       - ./auth-service:/usr/src/app
-      - /usr/src/app/node_modules
-    command: npm run dev
+      # - /usr/src/app/node_modules
+    command: node index.js
+    networks:
+      - app-network
 
   user-service:
     build:
@@ -32,8 +36,10 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
     volumes:
       - ./user-service:/usr/src/app
-      - /usr/src/app/node_modules
-    command: npm run dev
+      # - /usr/src/app/node_modules
+    command: node index.js
+    networks:
+      - app-network
 
   chat-service:
     build:
@@ -44,9 +50,11 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
     volumes:
       - ./chat-service:/usr/src/app
-      - /usr/src/app/node_modules
-    command: npm run dev
+      # - /usr/src/app/node_modules
+    command: node index.js
+    networks:
+      - app-network
 
 networks:
-  default:
+  app-network:
     driver: bridge

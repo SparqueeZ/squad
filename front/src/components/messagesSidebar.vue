@@ -33,34 +33,34 @@
           </div>
         </div>
         <router-link
-          v-for="(r, index) in room.roomList"
+          v-for="(r, index) in user.rooms"
           :key="index"
           :id="`room-${index}`"
-          :to="`/chat/${r.room._id}`"
+          :to="`/chat/${r.data.id}`"
         >
           <div class="message-card">
             <div class="message-img"></div>
             <div class="message-body">
               <div class="message-top">
-                <div class="message-sender">{{ r.room.title }}</div>
+                <div class="message-sender">{{ r.data.title }}</div>
                 <div class="message-status">
-                  <Icon v-if="r.room.seen" name="tickdouble" />
-                  <p class="message-sended-timing" v-if="r.lastMessage">
-                    {{ getRelativeTime(r.lastMessage.timestamp) }}
+                  <Icon v-if="r.seen" name="tickdouble" />
+                  <p class="message-sended-timing" v-if="r.lastMessages[0]">
+                    {{ getRelativeTime(r.lastMessages[0].timestamp) }}
                   </p>
                 </div>
               </div>
               <div class="message-btm">
                 <p class="message-content">
                   <strong>{{
-                    r.lastMessage
-                      ? `${r.lastMessage.sender} : `
+                    r.lastMessages[0]
+                      ? `${r.lastMessages[0].sender} : `
                       : "Aucun message envoyé."
                   }}</strong
-                  >{{ r.lastMessage ? r.lastMessage.text : "" }}
+                  >{{ r.lastMessages[0] ? r.lastMessages[0].text : "" }}
                 </p>
                 <div class="message-status">
-                  <Icon v-if="room.pinned" name="pin" />
+                  <Icon v-if="r.pinned" name="pin" />
                 </div>
               </div>
             </div>
@@ -74,17 +74,14 @@
 <script setup>
 import Icon from "./lib/Icon.vue";
 
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watchEffect } from "vue";
 import { useRoomStore } from "@/stores/roomStore";
+import { useUserStore } from "@/stores/userStore";
+const user = useUserStore();
 const room = useRoomStore();
 const messages = ref([]);
-const rooms = ref([room.roomList]);
 
-onMounted(() => {
-  console.log(room.roomList);
-});
-
-watch(() => {
+watchEffect(() => {
   room.roomList.lastMessage,
     (newLastMessage) => {
       console.log("There is a new last message", newLastMessage);
@@ -92,6 +89,7 @@ watch(() => {
 });
 
 const getRelativeTime = (timestamp) => {
+  console.log(timestamp);
   const now = Date.now();
   timestamp = new Date(timestamp).getTime();
   const diff = now - timestamp;

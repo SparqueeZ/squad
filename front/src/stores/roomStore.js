@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import axios from "../assets/axios";
 import { io } from "socket.io-client";
-const APIURL = import.meta.env.VITE_API_URL;
-export const socket = io(APIURL);
+const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+export const socket = io(APISOCKETURL);
 
 export const useRoomStore = defineStore("room", {
   state: () => ({
@@ -17,18 +17,18 @@ export const useRoomStore = defineStore("room", {
     },
     async fetchRoomList() {
       try {
-        const response = await axios.get("/api/users/rooms");
+        const response = await axios.get("/api/user/rooms");
         this.roomList = response.data;
         console.log("RoomList : ", this.roomList);
       } catch (error) {
-        console.error("Erreur lors du fetchAllCourses : ", error);
+        console.error("Erreur lors du fetchRoomList : ", error);
       }
     },
     async fetchRoomById(roomId) {
       try {
-        const response = await axios.get(`/api/rooms/byId/${roomId}`);
+        const response = await axios.get(`/api/chat/room/${roomId}`);
         this.actual = response.data;
-        console.log(this.actual);
+        // console.log(this.actual);
       } catch (error) {
         console.error("Erreur lors du fetchAllCourses : ", error);
       }
@@ -49,11 +49,14 @@ export const useRoomStore = defineStore("room", {
       }
     },
     setLastMessage(message) {
-      const room = this.roomList.forEach((r) => {
-        if (r.room._id === message.roomId) {
-          r.lastMessage = message;
-        }
-      });
+      // console.log(this.roomList);
+      // console.log(this.actual);
+      // const room = this.roomList.forEach((r) => {
+      //   console.log(r);
+      //   // if (r.room.id === message.roomId) {
+      //   //   r.lastMessage = message;
+      //   // }
+      // });
     },
   },
   getters: {

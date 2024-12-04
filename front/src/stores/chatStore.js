@@ -2,8 +2,8 @@ import { defineStore } from "pinia";
 import axios from "../assets/axios";
 import { io } from "socket.io-client";
 
-const APIURL = import.meta.env.VITE_API_URL;
-export const socket = io(APIURL);
+const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+export const socket = io(APISOCKETURL);
 
 export const useChatStore = defineStore("chat", {
   state: () => ({
@@ -15,9 +15,11 @@ export const useChatStore = defineStore("chat", {
       // console.log(this.username);
     },
     async fetchChatListByRoomId(roomId) {
-      socket.emit("joinRoom", roomId);
+      // socket.emit("joinRoom", roomId);
       try {
-        const response = await axios.get(`/api/messages/rooms/${roomId}`);
+        const response = await axios.get(
+          `http://localhost:3000/api/chat/${roomId}`
+        );
         this.chatList = response.data;
         console.log(this.chatList);
       } catch (error) {

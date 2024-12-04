@@ -2,8 +2,8 @@ import { defineStore } from "pinia";
 import axios from "../assets/axios.js";
 import { useRouter } from "vue-router";
 import { io } from "socket.io-client";
-const APIURL = import.meta.env.VITE_API_URL;
-export const socket = io(APIURL);
+const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+export const socket = io(APISOCKETURL);
 
 export const useUserStore = defineStore("user", {
   state: () => ({
@@ -11,17 +11,19 @@ export const useUserStore = defineStore("user", {
     email: null,
     role: null,
     unreadMessages: 0,
+    rooms: [],
   }),
   actions: {
     async fetchProfile() {
       const router = useRouter();
       try {
-        const response = await axios.get("/api/users/profile");
-        this.username = response.data.username;
-        this.email = response.data.email;
-        this.role = response.data.role;
-        this.unreadMessages = response.data.unreadMessages;
-        console.log(this.unreadMessages);
+        const response = await axios.get("/api/user/profile");
+        this.username = response.data.general.username;
+        this.email = response.data.general.email;
+        this.role = response.data.general.role;
+        this.unreadMessages = response.data.general.unreadMessages;
+        this.rooms = response.data.rooms;
+        console.log(this.rooms);
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
         router.push("/");
@@ -30,17 +32,18 @@ export const useUserStore = defineStore("user", {
     async login(username, password) {
       const router = useRouter();
       try {
-        const response = await axios.post("/api/users/login", {
+        const response = await axios.post("/api/auth/login", {
           username,
           password,
         });
         if (response.status === 200) {
           const token = response.data.token;
-          const profile = await axios.get("/api/users/profile");
-          this.username = profile.data.username;
-          this.email = profile.data.email;
-          this.role = profile.data.role;
-          this.unreadMessages = profile.data.unreadMessages;
+          const profile = await axios.get("/api/user/profile");
+          this.username = profile.data.general.username;
+          this.email = profile.data.general.email;
+          this.role = profile.data.general.role;
+          this.unreadMessages = profile.data.general.unreadMessages;
+          this.rooms = profile.data.rooms;
           return true;
         } else {
           router.push("/login");
@@ -53,12 +56,20 @@ export const useUserStore = defineStore("user", {
     },
     async updateMessageViews(messageId) {
       try {
-        await axios.post(`/api/users/messages/viewed/`, {
+        await axios.post(`/api/user/messages/viewed/`, {
           messageId,
         });
       } catch (error) {
         console.error("Erreur lors de l'updateMessageViews : ", error);
       }
+    },
+    async updateLastMessageOfRoom(message, roomId) {
+      this.rooms.forEach((room) => {
+        if (room.data.id === roomId) {
+          room.lastMessages.unshift(message);
+          console.warn(room.lastMessages);
+        }
+      });
     },
   },
   getters: {

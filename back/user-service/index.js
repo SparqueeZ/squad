@@ -1,21 +1,35 @@
 const express = require("express");
+const mongoose = require("mongoose");
+const dbConfig = require("./config/db");
+const axios = require("./config/axios");
+const cookieParser = require("cookie-parser");
+const logMiddleware = require("./middlewares/logMiddleware");
+
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
+app.use(logMiddleware);
 
-const users = [
-  { id: 1, name: "Alice" },
-  { id: 2, name: "Bob" },
-];
-
-app.get("/", (req, res) => {
-  res.json(users);
-});
-
-app.get("/:id", (req, res) => {
-  const user = users.find((u) => u.id == req.params.id);
-  if (user) res.json(user);
-  else res.status(404).json({ error: "User not found" });
-});
-
+const userRoutes = require("./routes/userRoutes");
 const PORT = 3002;
-app.listen(PORT, () => console.log(`User service running on port ${PORT}`));
+
+app.use("/", userRoutes);
+
+mongoose
+  .connect(dbConfig.url)
+  .then(() => {
+    console.log("Connected to MongoDB");
+
+    // axios.chatService
+    //   .get("/api/chat")
+    //   .then((response) => {
+    //     console.log(response.data);
+    //   })
+    //   .catch((error) => {
+    //     console.error("Error fetching data:", error);
+    //   });
+
+    // Démarrer le serveur
+    app.listen(PORT, () => console.log(`Running on port ${PORT}`));
+  })
+  .catch((err) => console.error("MongoDB connection error:", err));

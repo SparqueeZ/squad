@@ -19,41 +19,51 @@
       />
       <div class="button-group">
         <button type="submit" class="btn-primary">Se connecter</button>
-        <button type="button" @click="goToRegister" class="btn-secondary">Créer un compte</button>
+        <button type="button" @click="goToRegister" class="btn-secondary">
+          Créer un compte
+        </button>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { io } from "socket.io-client";
-const APIURL = import.meta.env.VITE_API_URL;
-const socket = io(APIURL);
 import { useUserStore } from "@/stores/userStore";
+import { useRoomStore } from "@/stores/roomStore";
 const user = useUserStore();
+const room = useRoomStore();
+const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+const socket = io(APISOCKETURL);
 
-const username = ref("");
-const password = ref("123");
+const username = ref("Baptiste");
+const password = ref("12345");
 const router = useRouter();
 
 const login = () => {
   if (username.value && password.value) {
     user.login(username.value, password.value);
-    if (user.username) {
-      router.push("/chat/673672da816c66f9b8c7d4ff");
-    } else {
-      console.log("Failed to log in");
-    }
+    setTimeout(() => {
+      console.log(user.username);
+      if (user.username) {
+        router.push("/chat");
+      }
+    }, 1000);
   }
-  user.login(username.value, password.value);
 };
 
 // Rediriger vers la page de création de compte
 const goToRegister = () => {
   router.push("/register");
 };
+
+onMounted(() => {
+  socket.on("connection", () => {
+    console.log("Connected to server");
+  });
+});
 </script>
 
 <style scoped>
@@ -64,7 +74,11 @@ const goToRegister = () => {
   justify-content: center;
   height: 100vh;
   width: 100%;
-  background: linear-gradient(135deg, #202329, #202329); /* Fond sombre avec dégradé bleu nuit */
+  background: linear-gradient(
+    135deg,
+    #202329,
+    #202329
+  ); /* Fond sombre avec dégradé bleu nuit */
   padding: 20px;
   text-align: center;
 }
