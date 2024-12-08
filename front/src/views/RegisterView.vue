@@ -4,6 +4,13 @@
       <h2>Créer un compte</h2>
       <form @submit.prevent="register">
         <input
+          v-model="email"
+          type="email"
+          placeholder="Adresse e-mail"
+          required
+          class="input-field"
+        />
+        <input
           v-model="username"
           type="text"
           placeholder="Nom d'utilisateur"
@@ -39,13 +46,41 @@
   const router = useRouter();
   
   const register = () => {
-    if (username.value && password.value) {
-      // Logique d'inscription à implémenter ici
-      console.log("Création du compte...");
-      // Si l'inscription réussie, rediriger vers la page de chat
-      router.push("/chat/673382c2f30357627ee996e4");
+  // Validation des données
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Regex pour un email valide
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}[\]:;<>,.?~\\/-])[A-Za-z\d!@#$%^&*()_+{}[\]:;<>,.?~\\/-]{12,}$/; // Regex pour un mot de passe valide
+  
+  if (!emailRegex.test(email.value)) {
+    alert("Veuillez entrer une adresse email valide.");
+    return;
+  }
+
+  if (!passwordRegex.test(password.value)) {
+    alert(
+      "Le mot de passe doit contenir au moins 12 caractères, une majuscule, un chiffre et un caractère spécial."
+    );
+    return;
+  }
+
+  // Envoi des données pour création du compte
+  console.log("Validation réussie, création du compte...");
+  socket.emit(
+    "register",
+    {
+      email: email.value,
+      username: username.value,
+      password: password.value,
+    },
+    (response) => {
+      if (response.success) {
+        alert("Compte créé avec succès !");
+        router.push("/chat/673382c2f30357627ee996e4");
+      } else {
+        alert(response.error || "Une erreur s'est produite lors de la création du compte.");
+      }
     }
-  };
+  );
+};
   
   // Rediriger vers la page de connexion
   const goToLogin = () => {
