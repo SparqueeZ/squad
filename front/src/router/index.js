@@ -3,19 +3,21 @@ import LoginView from "../views/LoginView.vue";
 import ChatRoom from "../views/ChatRoom.vue";
 import RegisterView from "../views/RegisterView.vue";
 import AppLayout from "../layouts/AppLayout.vue";
+import DemoView from "@/views/DemoView.vue";
+import ChatOverview from "@/views/ChatOverview.vue";
 // import NotFound from "../views/NotFound.vue"; // Exemple pour la page 404
 
 const routes = [
-  { path: "/", component: LoginView },
+  { path: "/login", component: LoginView },
   { path: "/register", component: RegisterView },
   {
-    path: "/chat",
+    path: "/",
     component: AppLayout,
     children: [
       {
         path: "", // Correspond à "/chat"
         name: "chat-overview",
-        component: ChatRoom,
+        component: ChatOverview,
       },
       {
         path: ":id", // Correspond à "/chat/:id"
@@ -23,6 +25,10 @@ const routes = [
         component: ChatRoom,
       },
     ],
+  },
+  {
+    path: "/demo",
+    component: DemoView,
   },
   // { path: "/:pathMatch(.*)*", component: NotFound }, // Catch-all pour une page 404
 ];

@@ -1,9 +1,9 @@
 import { defineStore } from "pinia";
 import axios from "../assets/axios";
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
 
-const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
-export const socket = io(APISOCKETURL);
+// const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+// export const socket = io(APISOCKETURL);
 
 export const useChatStore = defineStore("chat", {
   state: () => ({

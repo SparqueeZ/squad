@@ -49,7 +49,7 @@
         <div class="dot-falling"></div>
       </div>
     </div>
-    <div class="input-bar">
+    <div class="input-bar" @dragover.prevent @drop="handleFileDrop">
       <Icon name="attachment" />
       <form @submit.prevent="sendMessage">
         <input
@@ -61,9 +61,14 @@
           @blur="stopTyping()"
           @click="startTyping()"
         />
+
         <button type="submit">Envoyer</button>
       </form>
       <Icon name="microphone" />
+    </div>
+    <div v-if="file" class="file-upload-message">
+      <p>File ready to upload: {{ file.name }}</p>
+      <button @click="uploadFile">Upload</button>
     </div>
   </div>
 </template>
@@ -74,6 +79,7 @@ import { io } from "socket.io-client";
 import Icon from "@/components/lib/Icon.vue";
 import { useRoute } from "vue-router";
 import { triggerConfetti } from "@/assets/lib/Confetti";
+import axios from "../assets/axios";
 
 const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
 const socket = io(APISOCKETURL);
@@ -90,6 +96,7 @@ const someoneIsTyping = ref([]);
 
 const messagesContainer = ref(null);
 const canvas = ref(null);
+const file = ref(null);
 
 const handleIsTyping = () => {
   // if (newMessage.value) {
@@ -198,6 +205,40 @@ const handleScroll = () => {
   // });
 };
 
+const handleFileDrop = (event) => {
+  event.preventDefault();
+  const droppedFile = event.dataTransfer.files[0];
+  if (droppedFile) {
+    file.value = droppedFile;
+    console.log("File dropped:", droppedFile.name);
+  }
+};
+
+const handleFileUploadResponse = (response) => {
+  console.log(`Fichier uploadé : ${response.data.path}`);
+  file.value = null; // Clear the file after successful upload
+};
+
+const uploadFile = async () => {
+  if (!file.value) return;
+
+  const formData = new FormData();
+  formData.append("file", file.value);
+
+  try {
+    const response = await axios.post(
+      "http://localhost:3000/api/chat/room/upload",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+    handleFileUploadResponse(response);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 onMounted(() => {
   canvas.value = document.getElementById("canvas");
   console.log(user.rooms);
@@ -230,7 +271,11 @@ onMounted(() => {
     }
   });
 
-  room.fetchRoomById(route.params.id);
+  if (route.params.id) {
+    room.fetchRoomById(route.params.id);
+    chat.fetchChatListByRoomId(route.params.id);
+  }
+
   setTimeout(() => {
     scrollToBottom();
   }, 100);
@@ -238,18 +283,20 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  socket.off("receiveMessage");
   messagesContainer.value.removeEventListener("scroll", handleScroll);
+  socket.off("receiveMessage");
 });
 
 watch(
   () => route.params.id,
   (newId) => {
-    chat.fetchChatListByRoomId(newId);
-    room.fetchRoomById(newId);
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+    if (route.params.id) {
+      chat.fetchChatListByRoomId(newId);
+      room.fetchRoomById(newId);
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
   }
 );
 </script>
@@ -503,6 +550,27 @@ watch(
       stroke: #fff;
       width: 20px;
       display: flex;
+    }
+  }
+  .file-upload-message {
+    background-color: #2e333d;
+    color: #fff;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    button {
+      background-color: #333;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      &:hover {
+        background-color: #444;
+      }
     }
   }
 }

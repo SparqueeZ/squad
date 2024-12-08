@@ -9,10 +9,10 @@ const roomRoutes = require("./routes/roomRoutes");
 const dbConfig = require("./config/db");
 
 const app = express();
-const server = http.createServer(app); // Serveur HTTP pour Socket.io
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Autorise toutes les origines (adapter en prod)
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });

@@ -1,7 +1,9 @@
 const User = require("../models/userModel");
+const Token = require("../models/tokenModel");
 const JWT_SECRET = "jwtsecretdelamortquitue";
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
+const crypto = require("crypto");
 
 const userExists = async (username, email) => {
   const user = await User.findOne({ $or: [{ username }, { email }] });
@@ -18,42 +20,73 @@ const validateInput = (username, email) => {
 exports.loginUser = async (req, res) => {
   const { username, password } = req.body;
 
+  console.log("[INFO] - loginUser - username : ", username);
+
   try {
     const user = await User.findOne({ username });
-    if (!user) {
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid username or password" });
-    } else {
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res
-          .status(401)
-          .json({ message: "Invalid username or password" });
-      }
     }
-    const token = jwt.sign(
+
+    // Génération du token JWT pour l'authentification
+    const authToken = jwt.sign(
       {
         role: user.role,
         username: user.username,
         email: user.email,
-        rooms: user.rooms,
+        // rooms: user.rooms,
       },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.cookie("token", token, {
+    // Génération d'un token CSRF unique
+    const csrfToken = crypto.randomBytes(32).toString("hex");
+
+    // Vérification si un user a déjà un token CSRF
+    const existing = await Token.findOne({ userId: user.username });
+    if (existing) {
+      existing.token = csrfToken;
+      await existing.save();
+    } else {
+      const token = new Token({ userId: user.username, token: csrfToken });
+      await token.save();
+    }
+
+    // Stockage du token CSRF en base de données
+    // const token = new Token({ userId: user.username, token: csrfToken });
+    // await token.save();
+
+    // Stocker les tokens dans des cookies sécurisés
+    res.cookie("token", authToken, {
       httpOnly: true,
       sameSite: "strict",
     });
+    res.cookie("csrf_token", csrfToken, {
+      httpOnly: false,
+      secure: true,
+      sameSite: "Strict",
+    });
 
-    res.json({ message: "User logged in" });
+    res.json({
+      message: "User logged in",
+      data: {
+        role: user.role,
+        username: user.username,
+        email: user.email,
+        rooms: user.rooms,
+      },
+      csrfToken,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
 exports.logoutUser = async (req, res) => {
+  console.log("[INFO] - logoutUser ");
   res.clearCookie("token");
+  res.clearCookie("csrf_token");
   res.json({ message: "User logged out" });
 };
 

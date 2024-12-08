@@ -152,3 +152,16 @@ async function checkIfUserIsInRoom(userId, roomId) {
 //     res.status(400).json({ error: err.message });
 //   }
 // };
+
+exports.uploadFile = async (req, res) => {
+  console.log(req.file);
+  if (!req.file) {
+    return res.status(400).json({ message: "Aucun fichier envoyé" });
+  }
+
+  res.status(200).json({
+    message: "Fichier uploadé avec succès",
+    file: req.file.filename,
+    path: `/files/${req.file.filename}`,
+  });
+};

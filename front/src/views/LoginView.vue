@@ -17,6 +17,7 @@
         required
         class="input-field"
       />
+      <!-- <div id="turnstile"></div> -->
       <div class="button-group">
         <button type="submit" class="btn-primary">Se connecter</button>
         <button type="button" @click="goToRegister" class="btn-secondary">
@@ -30,27 +31,47 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { io } from "socket.io-client";
 import { useUserStore } from "@/stores/userStore";
-import { useRoomStore } from "@/stores/roomStore";
+// import { useRoomStore } from "@/stores/roomStore";
+import { useSecurityStore } from "@/stores/securityStore";
 const user = useUserStore();
-const room = useRoomStore();
-const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
-const socket = io(APISOCKETURL);
+// const room = useRoomStore();
+const security = useSecurityStore();
 
 const username = ref("Baptiste");
-const password = ref("12345");
+const password = ref("");
+const captchaToken = ref("");
+// const csrfToken = ref("");
 const router = useRouter();
 
-const login = () => {
-  if (username.value && password.value) {
-    user.login(username.value, password.value);
-    setTimeout(() => {
-      console.log(user.username);
-      if (user.username) {
-        router.push("/chat");
+const login = async () => {
+  if (username.value && password.value && captchaToken.value) {
+    // if (username.value && password.value) { // This line is for testing without captcha
+    const response = await fetch(
+      "https://api.sparqueez.org/api/validate-captcha",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "CSRF-Token": csrfToken.value,
+        },
+        body: JSON.stringify({ token: captchaToken.value }),
       }
-    }, 1000);
+    );
+
+    const data = await response.json();
+    if (data.success) {
+      // if (true) {// This line is for testing without captcha
+      user.login(username.value, password.value);
+      setTimeout(() => {
+        console.log(user.username);
+        if (user.username) {
+          router.push("/chat");
+        }
+      }, 1000);
+    } else {
+      alert("Captcha validation failed. Please try again.");
+    }
   }
 };
 
@@ -59,10 +80,18 @@ const goToRegister = () => {
   router.push("/register");
 };
 
-onMounted(() => {
-  socket.on("connection", () => {
-    console.log("Connected to server");
+onMounted(async () => {
+  turnstile.render("#turnstile", {
+    sitekey: "0x4AAAAAAA1lSa4o0C87pIHl",
+    callback: function (token) {
+      captchaToken.value = token;
+    },
   });
+  try {
+    await security.fetchCsrfToken();
+  } catch (error) {
+    console.error(error);
+  }
 });
 </script>
 
