@@ -17,7 +17,7 @@
         required
         class="input-field"
       />
-      <!-- <div id="turnstile"></div> -->
+      <div id="turnstile"></div>
       <div class="button-group">
         <button type="submit" class="btn-primary">Se connecter</button>
         <button type="button" @click="goToRegister" class="btn-secondary">
@@ -45,23 +45,25 @@ const captchaToken = ref("");
 const router = useRouter();
 
 const login = async () => {
-  if (username.value && password.value && captchaToken.value) {
-    // if (username.value && password.value) { // This line is for testing without captcha
-    const response = await fetch(
-      "https://api.sparqueez.org/api/validate-captcha",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "CSRF-Token": csrfToken.value,
-        },
-        body: JSON.stringify({ token: captchaToken.value }),
-      }
-    );
+  // if (username.value && password.value && captchaToken.value) {
+  if (username.value && password.value) {
+    // This line is for testing without captcha
+    // const response = await fetch(
+    //   "https://api.sparqueez.org/api/validate-captcha",
+    //   {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       // "CSRF-Token": csrfToken.value ? csrfToken.value : "",
+    //     },
+    //     body: JSON.stringify({ token: captchaToken.value }),
+    //   }
+    // );
 
-    const data = await response.json();
-    if (data.success) {
-      // if (true) {// This line is for testing without captcha
+    // const data = await response.json();
+    // if (data.success) {
+    if (true) {
+      // This line is for testing without captcha
       user.login(username.value, password.value);
       setTimeout(() => {
         console.log(user.username);
@@ -87,11 +89,11 @@ onMounted(async () => {
       captchaToken.value = token;
     },
   });
-  try {
-    await security.fetchCsrfToken();
-  } catch (error) {
-    console.error(error);
-  }
+  // try {
+  //   await security.fetchCsrfToken();
+  // } catch (error) {
+  //   console.error(error);
+  // }
 });
 </script>
 

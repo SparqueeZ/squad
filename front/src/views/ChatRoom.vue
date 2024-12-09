@@ -226,13 +226,9 @@ const uploadFile = async () => {
   formData.append("file", file.value);
 
   try {
-    const response = await axios.post(
-      "http://localhost:3000/api/chat/room/upload",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    const response = await axios.post("/api/chat/room/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     handleFileUploadResponse(response);
   } catch (error) {
     console.error(error);

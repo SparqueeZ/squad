@@ -6,9 +6,9 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 
-// MiddleWare pour limiter le nombre de requêtes par IP
-// 100 requêtes par IP toutes les 15 minutes
+// Middleware pour limiter le nombre de requêtes par IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -17,39 +17,28 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// Utilisation du CORS pour autoriser les requêtes depuis le front-end (developpement pour l'instant)
+// Utilisation de CORS
 app.use(
   cors({
-    origin: "http://localhost",
+    origin: "https://sparqueez.org",
     credentials: true,
   })
 );
 
-// Proxy vers le microservice utilisateur
+// Proxy vers différents microservices
 app.use(
   "/api/auth",
-  createProxyMiddleware({
-    target: "http://localhost:3001",
-    changeOrigin: true,
-  })
+  createProxyMiddleware({ target: "http://localhost:3001", changeOrigin: true })
 );
 
-// Proxy vers le microservice utilisateur
 app.use(
   "/api/user",
-  createProxyMiddleware({
-    target: "http://localhost:3002",
-    changeOrigin: true,
-  })
+  createProxyMiddleware({ target: "http://localhost:3002", changeOrigin: true })
 );
 
-// Proxy vers le microservice chat
 app.use(
   "/api/chat",
-  createProxyMiddleware({
-    target: "http://localhost:3003",
-    changeOrigin: true,
-  })
+  createProxyMiddleware({ target: "http://localhost:3003", changeOrigin: true })
 );
 
 app.use(
@@ -63,41 +52,34 @@ app.use(
 
 app.use(express.json());
 
-app.post("/api/validate-captcha", async (req, res) => {
-  const secret = process.env.CAPTCHA_SECRET_KEY;
-  const token = req.body.token;
+// Validation Captcha
+// app.post("/api/validate-captcha", async (req, res) => {
+//   const secret = process.env.CAPTCHA_SECRET_KEY;
+//   const token = req.body.token;
+//   console.log(secret, token);
 
-  console.log("Captcha token : " + token);
+//   const validateCaptchaResponse = await fetch(
+//     "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+//     {
+//       method: "POST",
+//       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+//       body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(
+//         token
+//       )}`,
+//     }
+//   );
 
-  const validateCaptchaResponse = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(
-        token
-      )}`,
-    }
-  );
+//   const validateCaptchaResponseBody = await validateCaptchaResponse.json();
+//   console.log(validateCaptchaResponseBody);
 
-  console.log(
-    "Validate captcha status code : " + validateCaptchaResponse.status
-  );
-  const validateCaptchaResponseBody = await validateCaptchaResponse.json();
-  console.log(
-    "Validate captcha response : " + JSON.stringify(validateCaptchaResponseBody)
-  );
+//   if (validateCaptchaResponseBody.success) {
+//     res.status(200).send({ success: true });
+//   } else {
+//     res.status(403).send({ success: false });
+//   }
+// });
 
-  if (validateCaptchaResponseBody.success) {
-    res.status(200).send({ success: true });
-  } else {
-    res.status(403).send({ success: false });
-  }
-});
-
-// Démarrer le serveur API Gateway
+// Démarrer le serveur HTTP (non sécurisé)
 app.listen(3000, () => {
   console.log("API Gateway is running on http://localhost:3000");
 });

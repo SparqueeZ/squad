@@ -14,6 +14,12 @@ if (environment !== "development") {
   services.userService = "http://user-service:3002";
   services.chatService = "http://chat-service:3003";
 }
+if (environment === "production") {
+  console.warn("Using production URLs");
+  services.authService = "http://auth-service:3001";
+  services.userService = "http://user-service:3002";
+  services.chatService = "http://chat-service:3003";
+}
 
 const createAxiosInstance = (baseURL) => {
   if (!baseURL) {
