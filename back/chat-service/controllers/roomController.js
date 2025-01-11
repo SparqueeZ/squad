@@ -1,6 +1,6 @@
 const axios = require("../config/axios");
 const Room = require("../models/roomModel");
-// const User = require("../models/userModel");
+//const User = require("../models/userModel");
 const Message = require("../models/messageModel");
 const multer = require("multer");
 const path = require("path");
@@ -228,3 +228,52 @@ exports.getFile = (req, res) => {
     res.download(filePath, fileName);
   });
 };
+
+exports.updateMessageViews = async (req, res) => {
+  console.log("Updating message views");
+  const user = req.user;
+  const { messageId } = req.body;
+  try {
+    const messages = await updateMessageViewsLogic(messageId, user.username);
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+async function updateMessageViewsLogic(messageId, username) {
+  try {
+    const messages = await getMessageById(messageId);
+    const updatedMessages = messages.filter(
+      (message) => !message.viewedBy.includes(username)
+    );
+    for (const message of updatedMessages) {
+      message.viewedBy.push(username);
+      await saveMessage(message);
+    }
+    return updatedMessages;
+  } catch (err) {
+    return err;
+  }
+}
+
+async function getMessageById(messageId) {
+  try {
+    const response = await axios.chatService.get(
+      `/messages/internal/findById?id=${messageId}`
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error("Error fetching message data");
+  }
+}
+
+async function saveMessage(message) {
+  try {
+    await axios.chatService.post("/messages/internal/save", message);
+  } catch (err) {
+    throw new Error("Error saving message data");
+  }
+}
+
+exports.updateMessageViewsLogic = updateMessageViewsLogic;
