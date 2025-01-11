@@ -36,9 +36,6 @@ mongoose
   .then(() => {
     console.log("Connected to MongoDB");
 
-    // Démarrer WebSockets
-    chatSocket(io);
-
     // Démarrer le serveur
     server.listen(PORT, () => {
       console.log(`Running on port ${PORT}`);
