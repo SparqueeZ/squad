@@ -114,3 +114,55 @@ exports.registerUser = [
     }
   },
 ];
+
+exports.getAllUsers = async (req, res) => {
+  console.log("Fetching all users");
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getUserRooms = async (req, res) => {
+  console.log(`[INFO] Fetching user rooms...`);
+  const user = req.user;
+  try {
+    const rooms = await Promise.all(
+      user.rooms.map(async (roomId) => {
+        const roomData = await getRoomInformationsById(roomId);
+        return roomData;
+      })
+    );
+    res.json(rooms);
+    console.info(`[SUCCESS] User rooms fetched successfully`);
+  } catch (err) {
+    console.error(
+      `[ERROR] Error fetching user ${req.params.userId} rooms`,
+      err.message
+    );
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateUserRooms = async (req, res) => {
+  console.log(
+    `[INFO] Updating user ${req.params.userId} rooms with room ${req.body.roomId}`
+  );
+  const userId = req.params.userId;
+  if (req.body.roomId) {
+    try {
+      const user = await User.findById(userId);
+      user.rooms.push(req.body.roomId);
+      const savedUser = await user.save();
+      res.json(savedUser);
+    } catch (err) {
+      console.error(err.message);
+      res.status(400).json({ error: err.message });
+    }
+  } else {
+    console.error("[ERROR] Missing room ID");
+    res.status(400).json({ error: "Missing room ID" });
+  }
+};
