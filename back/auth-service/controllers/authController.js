@@ -1,7 +1,11 @@
 const User = require("../models/userModel");
+const Token = require("../models/tokenModel");
 const JWT_SECRET = "jwtsecretdelamortquitue";
 const jwt = require("jsonwebtoken");
-const axios = require("axios");
+const axios = require("../config/axios");
+const crypto = require("crypto");
+const speakeasy = require("speakeasy");
+const qrcode = require("qrcode");
 
 const userExists = async (username, email) => {
   const user = await User.findOne({ $or: [{ username }, { email }] });
@@ -16,68 +20,238 @@ const validateInput = (username, email) => {
 };
 
 exports.loginUser = async (req, res) => {
+  console.log("[INFO] - loginUser - username : ", username);
   const { username, password } = req.body;
 
   try {
     const user = await User.findOne({ username });
-    if (!user) {
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid username or password" });
-    } else {
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res
-          .status(401)
-          .json({ message: "Invalid username or password" });
-      }
     }
-    const token = jwt.sign(
+
+    const authToken = jwt.sign(
       {
-        role: user.role,
-        username: user.username,
-        email: user.email,
-        rooms: user.rooms,
+        userId: user._id,
       },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.cookie("token", token, {
+    // Génération d'un token CSRF unique
+    const csrfToken = crypto.randomBytes(32).toString("hex");
+
+    // Vérification si un user a déjà un token CSRF
+    const existing = await Token.findOne({ userId: user.username });
+    if (existing) {
+      existing.token = csrfToken;
+      await existing.save();
+    } else {
+      const token = new Token({ userId: user.username, token: csrfToken });
+      await token.save();
+    }
+
+    // Stockage du token CSRF en base de données
+    // const token = new Token({ userId: user.username, token: csrfToken });
+    // await token.save();
+
+    // Stocker les tokens dans des cookies sécurisés
+    res.cookie("token", authToken, {
       httpOnly: true,
       sameSite: "strict",
     });
+    res.cookie("csrf_token", csrfToken, {
+      httpOnly: false,
+      secure: true,
+      sameSite: "Strict",
+    });
 
-    res.json({ message: "User logged in" });
+    console.log("[SUCCESS] - loginUser - User logged in");
+    res.json({
+      message: "User logged in",
+      data: {
+        role: user.role,
+        username: user.username,
+        email: user.email,
+        rooms: user.rooms,
+      },
+      csrfToken,
+    });
   } catch (err) {
+    console.error("[ERROR] - loginUser - ", err);
     res.status(500).json({ error: err.message });
   }
 };
 
 exports.logoutUser = async (req, res) => {
+  console.log("[INFO] - logoutUser ");
   res.clearCookie("token");
+  res.clearCookie("csrf_token");
   res.json({ message: "User logged out" });
 };
 
-exports.registerUser = [
-  async (req, res) => {
-    const { username, email, password, rooms } = req.body;
-    rooms ? rooms : (rooms = ["673382c2f30357627ee996e4"]);
+exports.registerUser = async (req, res) => {
+  const { username, email, password, rooms } = req.body;
+  rooms ? rooms : (rooms = ["673382c2f30357627ee996e4"]);
 
-    if (!validateInput(username, email)) {
-      return res
-        .status(400)
-        .json({ message: "Invalid username or email format" });
+  if (!validateInput(username, email)) {
+    return res
+      .status(400)
+      .json({ message: "Invalid username or email format" });
+  }
+
+  try {
+    if (await userExists(username, email)) {
+      return res.status(409).json({ message: "User already exists" });
     }
 
-    try {
-      if (await userExists(username, email)) {
-        return res.status(409).json({ message: "User already exists" });
+    const newUser = new User({ username, email, password, rooms });
+    const savedUser = await newUser.save();
+    res.status(201).json(savedUser);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getUserProfile = async (req, res) => {
+  console.log(`[INFO] - getUserProfile - username : ${req.user.userId}`);
+  const user = req.user;
+
+  try {
+    const db_user = await User.findOne({ _id: user.userId }).select(
+      "-password -mfaSecret -__v"
+    );
+    console.log(
+      "[SUCCESS] - getUserProfile - User profile fetched successfully"
+    );
+    // Récupérer les informations des rooms
+    const userRooms = db_user.rooms;
+
+    const rooms = await Promise.all(
+      userRooms.map(async (roomId) => {
+        if (!roomId) {
+          console.error("[ERROR] - getUserProfile - Room ID is undefined");
+          return;
+        }
+        let roomInformations = [];
+        try {
+          roomInformations = await axios.chatService.get(`/room/${roomId}`);
+        } catch (error) {
+          console.error("[ERROR] - getUserProfile - ", error);
+        }
+        return roomInformations.data;
+      })
+    );
+
+    for (const room of rooms) {
+      for (let i = 0; i < room.users.length; i++) {
+        const user = await User.findById(room.users[i]).select("username");
+        room.users[i] = user;
       }
-
-      const newUser = new User({ username, email, password, rooms });
-      const savedUser = await newUser.save();
-      res.status(201).json(savedUser);
-    } catch (err) {
-      res.status(400).json({ error: err.message });
     }
-  },
-];
+
+    res.status(200).json({
+      user: {
+        ...db_user._doc,
+        rooms,
+      },
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.setupMFA = async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.body.username });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    if (user.mfaSecret) {
+      return res.status(400).json({
+        success: false,
+        message: "MFA is already set up for this user",
+      });
+    }
+
+    const secret = speakeasy.generateSecret({
+      name: `Squad (${user.email})`,
+    });
+
+    user.mfaSecret = secret.base32;
+    await user.save();
+
+    const qrCode = await qrcode.toDataURL(secret.otpauth_url);
+
+    res.json({
+      success: true,
+      message: "MFA setup initiated",
+      qrCode,
+      otpauthUrl: secret.otpauth_url,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Error setting up MFA" });
+  }
+};
+
+exports.verifyMFA = async (req, res) => {
+  try {
+    const { username, token } = req.body;
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    if (!user.mfaSecret) {
+      return res.status(400).json({
+        success: false,
+        message: "MFA is not set up for this user",
+      });
+    }
+
+    // Vérifier le code TOTP
+    const verified = speakeasy.totp.verify({
+      secret: user.mfaSecret,
+      encoding: "base32",
+      token,
+      window: 1, // Tolérance d'une période
+    });
+
+    if (verified) {
+      res.json({ success: true, message: "MFA verified successfully" });
+    } else {
+      res.status(400).json({ success: false, message: "Invalid MFA token" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Error verifying MFA" });
+  }
+};
+
+exports.resetMFA = async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    user.mfaSecret = null;
+    await user.save();
+
+    res.json({ success: true, message: "MFA reset successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Error resetting MFA" });
+  }
+};

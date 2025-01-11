@@ -1,5 +1,5 @@
 <template>
-  <main class="chatroom-container">
+  <main class="chatroom-container" v-if="true">
     <Sidebar />
     <messagesSidebar v-if="user.username" />
     <div v-else class="errorMessageSidebar">Chargement messages sidebar</div>
@@ -13,10 +13,13 @@
       <p>Chat Details</p>
     </aside>
   </main>
+  <main v-else>
+    <router-view></router-view>
+  </main>
 </template>
 
 <script setup lang="ts">
-import Sidebar from "../components/Sidebar.vue";
+import Sidebar from "../components/sidebar.vue";
 import messagesSidebar from "@/components/messagesSidebar.vue";
 import { ref, onMounted } from "vue";
 import { useChatStore } from "@/stores/chatStore";
@@ -27,10 +30,31 @@ const room = useRoomStore();
 const user = useUserStore();
 import { useRoute } from "vue-router";
 const route = useRoute();
+import { useRouter } from "vue-router";
+const router = useRouter();
+
+const isChatOnlyRoute = () => {
+  console.log(route.fullPath);
+  if (route.fullPath === "/chat/" || route.fullPath === "/chat") {
+    return false;
+  }
+  return true;
+};
+
+const checkUser = () => {
+  if (!user.username) {
+    router.push("/login");
+  }
+};
+
 onMounted(async () => {
   await user.fetchProfile();
-  await chat.fetchChatListByRoomId(route.params.id);
-  await room.fetchRoomList();
+  // user.rooms.forEach(async (room) => {
+  //   await chat.fetchChatListByRoomId(room.data.id);
+  // });
+  // await room.fetchRoomList();
+  checkUser();
+
   // console.log(user.username);
   // setTimeout(() => {}, 1000);
 });

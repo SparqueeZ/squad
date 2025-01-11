@@ -20,10 +20,17 @@
         <div class="message-sender-img" @click="console.log('Open DM')"></div>
         <div class="message-bubble">
           <div class="message-sender">
-            <Icon v-if="user.role === 'admin'" name="crown" />
             <p>{{ message.sender }}</p>
           </div>
           <p class="message-content">{{ message.text }}</p>
+          <a
+            v-if="message.filePath"
+            :href="message.filePath"
+            target="_blank"
+            download
+          >
+            {{ message.fileName }}
+          </a>
           <div class="message-infos">
             <p class="message-date">
               {{ getDateString(message.timestamp) }}
@@ -49,7 +56,7 @@
         <div class="dot-falling"></div>
       </div>
     </div>
-    <div class="input-bar">
+    <div class="input-bar" @dragover.prevent @drop="handleFileDrop">
       <Icon name="attachment" />
       <form @submit.prevent="sendMessage">
         <input
@@ -61,9 +68,14 @@
           @blur="stopTyping()"
           @click="startTyping()"
         />
+
         <button type="submit">Envoyer</button>
       </form>
       <Icon name="microphone" />
+    </div>
+    <div v-if="file" class="file-upload-message">
+      <p>File ready to upload: {{ file.name }}</p>
+      <button @click="uploadFile">Upload</button>
     </div>
   </div>
 </template>
@@ -74,6 +86,7 @@ import { io } from "socket.io-client";
 import Icon from "@/components/lib/Icon.vue";
 import { useRoute } from "vue-router";
 import { triggerConfetti } from "@/assets/lib/Confetti";
+import axios from "../assets/axios";
 
 const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
 const socket = io(APISOCKETURL);
@@ -90,6 +103,7 @@ const someoneIsTyping = ref([]);
 
 const messagesContainer = ref(null);
 const canvas = ref(null);
+const file = ref(null);
 
 const handleIsTyping = () => {
   // if (newMessage.value) {
@@ -198,6 +212,35 @@ const handleScroll = () => {
   // });
 };
 
+const handleFileDrop = (event) => {
+  event.preventDefault();
+  const droppedFile = event.dataTransfer.files[0];
+  if (droppedFile) {
+    file.value = droppedFile;
+    console.log("File dropped:", droppedFile.name);
+  }
+};
+
+const uploadFile = async () => {
+  if (!file.value) return;
+
+  const formData = new FormData();
+  formData.append("file", file.value);
+  formData.append("roomId", route.params.id);
+  formData.append("sender", user.username);
+
+  try {
+    const response = await axios.post("/api/chat/room/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    console.log(`Fichier uploadé : ${response.data.path}`);
+    file.value = null; // Clear the file after successful upload
+  } catch (error) {
+    console.error("Error uploading file:", error);
+  }
+};
+
 onMounted(() => {
   canvas.value = document.getElementById("canvas");
   console.log(user.rooms);
@@ -218,6 +261,21 @@ onMounted(() => {
     }
   });
 
+  socket.on("fileUploaded", (data) => {
+    if (data.type === "file") {
+      console.log(`Fichier reçu : ${data.fileName}`);
+      chat.chatList.push({
+        text: `Fichier reçu : ${data.fileName}`,
+        filePath: data.filePath,
+        fileName: data.fileName,
+        sender: data.sender,
+        timestamp: getActualDateTime(),
+        roomId: data.roomId,
+        viewedBy: ["Baptiste"],
+      });
+    }
+  });
+
   socket.on("stoppedTyping", (userData) => {
     const index = someoneIsTyping.value.findIndex((user) => user === userData);
     someoneIsTyping.value.splice(index, 1);
@@ -230,7 +288,11 @@ onMounted(() => {
     }
   });
 
-  room.fetchRoomById(route.params.id);
+  if (route.params.id) {
+    room.fetchRoomById(route.params.id);
+    chat.fetchChatListByRoomId(route.params.id);
+  }
+
   setTimeout(() => {
     scrollToBottom();
   }, 100);
@@ -238,18 +300,20 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  socket.off("receiveMessage");
   messagesContainer.value.removeEventListener("scroll", handleScroll);
+  socket.off("receiveMessage");
 });
 
 watch(
   () => route.params.id,
   (newId) => {
-    chat.fetchChatListByRoomId(newId);
-    room.fetchRoomById(newId);
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+    if (route.params.id) {
+      chat.fetchChatListByRoomId(newId);
+      room.fetchRoomById(newId);
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
   }
 );
 </script>
@@ -503,6 +567,27 @@ watch(
       stroke: #fff;
       width: 20px;
       display: flex;
+    }
+  }
+  .file-upload-message {
+    background-color: #2e333d;
+    color: #fff;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    button {
+      background-color: #333;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      &:hover {
+        background-color: #444;
+      }
     }
   }
 }

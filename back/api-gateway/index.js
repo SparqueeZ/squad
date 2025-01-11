@@ -1,12 +1,23 @@
 const express = require("express");
-const axios = require("./config/axios");
+const { createProxyMiddleware } = require("http-proxy-middleware");
 const cors = require("cors");
-const cookieParser = require("cookie-parser");
+const rateLimit = require("express-rate-limit");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const app = express();
-app.use(express.json());
-app.use(cookieParser());
+app.set("trust proxy", 1);
 
+// Middleware pour limiter le nombre de requêtes par IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Too many requests from this IP, please try again later.",
+});
+
+app.use(limiter);
+
+// Utilisation de CORS
 app.use(
   cors({
     origin: "http://localhost",
@@ -14,80 +25,65 @@ app.use(
   })
 );
 
-const logMiddleware = (req, res, next) => {
-  console.log(`API Gateway request: ${req.method} ${req.url}`);
-  res.on("finish", () => {
-    console.log(`API Gateway response status: ${res.statusCode}`);
-  });
-  next();
-};
+// Proxy vers différents microservices
+app.use(
+  "/api/auth",
+  createProxyMiddleware({ target: "http://localhost:3001", changeOrigin: true })
+);
 
-app.use(logMiddleware);
+app.use(
+  "/api/user",
+  createProxyMiddleware({ target: "http://localhost:3002", changeOrigin: true })
+);
 
-// Routes vers les services
-app.use("/api/auth", async (req, res) => {
-  const { method, body } = req;
-  try {
-    const response = await axios.authService({
-      url: `${req.url}`,
-      method,
-      data: body,
-    });
+app.use(
+  "/api/chat",
+  createProxyMiddleware({
+    target: "http://localhost:3003",
+    changeOrigin: true,
+    ws: true,
+  })
+);
 
-    // Forward cookies from auth service response to client
-    const setCookieHeader = response.headers["set-cookie"];
-    if (setCookieHeader) {
-      res.setHeader("set-cookie", setCookieHeader);
-    }
+// app.use(
+//   "/",
+//   createProxyMiddleware({
+//     target: "http://localhost:3003",
+//     changeOrigin: true,
+//     ws: true,
+//   })
+// );
 
-    res.status(response.status).json(response.data);
-    console.log(response.data);
-  } catch (err) {
-    console.log(err.message);
-    res.status(err.response?.status || 500).json({ error: err.message });
-  }
+app.use(express.json());
+
+// Validation Captcha
+// app.post("/api/validate-captcha", async (req, res) => {
+//   const secret = process.env.CAPTCHA_SECRET_KEY;
+//   const token = req.body.token;
+//   console.log(secret, token);
+
+//   const validateCaptchaResponse = await fetch(
+//     "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+//     {
+//       method: "POST",
+//       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+//       body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(
+//         token
+//       )}`,
+//     }
+//   );
+
+//   const validateCaptchaResponseBody = await validateCaptchaResponse.json();
+//   console.log(validateCaptchaResponseBody);
+
+//   if (validateCaptchaResponseBody.success) {
+//     res.status(200).send({ success: true });
+//   } else {
+//     res.status(403).send({ success: false });
+//   }
+// });
+
+// Démarrer le serveur HTTP (non sécurisé)
+app.listen(3000, () => {
+  console.log("API Gateway is running on http://localhost:3000");
 });
-
-app.use("/api/user", async (req, res) => {
-  const { method, body } = req;
-  const token = req.cookies ? req.cookies.token : null;
-  if (!token) {
-    return res.status(401).json({ error: "No token provided" });
-  }
-  try {
-    const response = await axios.userService({
-      url: `${req.url}`,
-      method,
-      data: body,
-      headers: {
-        Cookie: `token=${token}`,
-      },
-    });
-    res.status(response.status).json(response.data);
-  } catch (err) {
-    console.log(err.message);
-    res.status(err.response?.status || 500).json({ error: err.message });
-  }
-});
-
-app.use("/api/chat", async (req, res) => {
-  const { method, body } = req;
-  const userIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-  try {
-    const response = await axios.chatService({
-      url: `${req.url}`,
-      method,
-      data: body,
-      headers: {
-        ...req.headers, // Copier tous les en-têtes reçus
-        "X-Forwarded-For": userIp, // Ajouter/Remplacer l'en-tête X-Forwarded-For
-      },
-    });
-    res.status(response.status).json(response.data);
-  } catch (err) {
-    res.status(err.response?.status || 500).json({ error: err.message });
-  }
-});
-
-const PORT = 3000;
-app.listen(PORT, () => console.log(`API Gateway running on port ${PORT}`));

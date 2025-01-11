@@ -24,41 +24,6 @@ exports.createUsers = async (req, res) => {
   }
 };
 
-exports.loginUser = async (req, res) => {
-  console.log("User login attempt");
-  const { username, password } = req.body;
-
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid username or password" });
-    } else {
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res
-          .status(401)
-          .json({ message: "Invalid username or password" });
-      }
-    }
-    const token = jwt.sign(JWT_SECRET, { expiresIn: "1h" });
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      sameSite: "strict",
-    });
-
-    res.json({ message: "User logged in" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.logout = async (req, res) => {
-  console.log("User logout");
-  res.clearCookie("token");
-  res.json({ message: "User logged out" });
-};
-
 exports.getProfile = async (req, res) => {
   console.log("Fetching user profile");
   res.json(req.user);
@@ -84,27 +49,27 @@ exports.getFullProfile = async (req, res) => {
           return;
         }
         const roomInformations = await getRoomInformationsById(roomId);
-        if (!roomInformations) {
-          console.error(
-            `[ERROR] Room ${roomId} data is undefined, deleting room for user ${user.username}`
-          );
-          const userAimed = await User.findOne({
-            username: user.username,
-            email: user.email,
-          });
-          const roomToDeleteIndex = userAimed.rooms.indexOf(roomId);
-          userAimed.rooms.splice(roomToDeleteIndex, 1);
-          databaseUserRooms.splice(roomToDeleteIndex, 1);
-          user.rooms = userAimed.rooms;
-          if (await userAimed.save()) {
-            console.log(
-              `[SUCCESS] Room ${roomId}deleted successfully deleted from user ${user.username}`
-            );
-            return null;
-          } else {
-            console.error("[ERROR] Room deletion failed");
-          }
-        }
+        // if (!roomInformations) {
+        //   console.error(
+        //     `[ERROR] Room ${roomId} data is undefined, deleting room for user ${user.username}`
+        //   );
+        //   const userAimed = await User.findOne({
+        //     username: user.username,
+        //     email: user.email,
+        //   });
+        //   const roomToDeleteIndex = userAimed.rooms.indexOf(roomId);
+        //   userAimed.rooms.splice(roomToDeleteIndex, 1);
+        //   databaseUserRooms.splice(roomToDeleteIndex, 1);
+        //   user.rooms = userAimed.rooms;
+        //   if (await userAimed.save()) {
+        //     console.log(
+        //       `[SUCCESS] Room ${roomId}deleted successfully deleted from user ${user.username}`
+        //     );
+        //     return null;
+        //   } else {
+        //     console.error("[ERROR] Room deletion failed");
+        //   }
+        // }
         return {
           data: roomInformations ? roomInformations : {},
           unreadMessages:
@@ -144,20 +109,6 @@ async function getLastMessages(roomId) {
     console.log(err);
   }
 }
-
-exports.registerUser = async (req, res) => {
-  console.log("Registering new user");
-  const { username, email, password, rooms } = req.body;
-  rooms ? rooms : (rooms = ["673382c2f30357627ee996e4"]);
-
-  try {
-    const newUser = new User({ username, email, password, rooms });
-    const savedUser = await newUser.save();
-    res.status(201).json(savedUser);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
 
 async function getRoomById(roomId) {
   try {

@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
       ref: "Room",
     },
   ],
+  mfaSecret: {
+    type: String,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -1,9 +1,26 @@
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
+  filePath: {
+    type: String,
+    required: function () {
+      return this.type === "file";
+    },
+  },
+  fileName: {
+    type: String,
+    required: function () {
+      return this.type === "file";
+    },
+  },
+
   text: {
     type: String,
     required: true,
+  },
+  type: {
+    type: String,
+    required: false,
   },
   sender: {
     type: String,

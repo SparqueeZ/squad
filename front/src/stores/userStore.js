@@ -1,9 +1,10 @@
 import { defineStore } from "pinia";
 import axios from "../assets/axios.js";
 import { useRouter } from "vue-router";
-import { io } from "socket.io-client";
-const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
-export const socket = io(APISOCKETURL);
+// import { io } from "socket.io-client";
+// const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+// export const socket = io(APISOCKETURL);
+const router = useRouter();
 
 export const useUserStore = defineStore("user", {
   state: () => ({
@@ -12,18 +13,24 @@ export const useUserStore = defineStore("user", {
     role: null,
     unreadMessages: 0,
     rooms: [],
+    csrfToken: "",
   }),
   actions: {
     async fetchProfile() {
       const router = useRouter();
       try {
-        const response = await axios.get("/api/user/profile");
+        const csrfToken = getCsrfToken();
+        const response = await axios.get("/api/user/profile", {
+          withCredentials: true,
+          headers: {
+            "x-csrf-token": csrfToken,
+          },
+        });
         this.username = response.data.general.username;
         this.email = response.data.general.email;
         this.role = response.data.general.role;
         this.unreadMessages = response.data.general.unreadMessages;
         this.rooms = response.data.rooms;
-        console.log(this.rooms);
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
         router.push("/");
@@ -37,13 +44,20 @@ export const useUserStore = defineStore("user", {
           password,
         });
         if (response.status === 200) {
-          const token = response.data.token;
-          const profile = await axios.get("/api/user/profile");
+          const csrfToken = getCsrfToken();
+
+          const profile = await axios.get("/api/user/profile", {
+            withCredentials: true,
+            headers: {
+              "x-csrf-token": csrfToken,
+            },
+          });
           this.username = profile.data.general.username;
           this.email = profile.data.general.email;
           this.role = profile.data.general.role;
           this.unreadMessages = profile.data.general.unreadMessages;
           this.rooms = profile.data.rooms;
+
           return true;
         } else {
           router.push("/login");
@@ -71,6 +85,18 @@ export const useUserStore = defineStore("user", {
         }
       });
     },
+    async logout() {
+      try {
+        await axios.get("/api/auth/logout");
+        this.username = null;
+        this.email = null;
+        this.role = null;
+        this.unreadMessages = 0;
+        this.rooms = [];
+      } catch (error) {
+        console.error("Erreur lors du logout : ", error);
+      }
+    },
   },
   getters: {
     getUsername(state) {
@@ -78,3 +104,10 @@ export const useUserStore = defineStore("user", {
     },
   },
 });
+
+const getCsrfToken = () => {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("csrf_token="))
+    ?.split("=")[1];
+};

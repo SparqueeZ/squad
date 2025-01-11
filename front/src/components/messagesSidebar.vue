@@ -36,7 +36,7 @@
           v-for="(r, index) in user.rooms"
           :key="index"
           :id="`room-${index}`"
-          :to="`/chat/${r.data.id}`"
+          :to="`/${r.data.id}`"
         >
           <div class="message-card">
             <div class="message-img"></div>
@@ -67,6 +67,9 @@
           </div>
         </router-link>
       </div>
+      <div class="message-sidebar-footer">
+        <button @click="handleLogout()">Se déconnecter</button>
+      </div>
     </div>
   </aside>
 </template>
@@ -77,6 +80,8 @@ import Icon from "./lib/Icon.vue";
 import { ref, onMounted, onUnmounted, watchEffect } from "vue";
 import { useRoomStore } from "@/stores/roomStore";
 import { useUserStore } from "@/stores/userStore";
+import { useRouter } from "vue-router";
+const router = useRouter();
 const user = useUserStore();
 const room = useRoomStore();
 const messages = ref([]);
@@ -89,14 +94,11 @@ watchEffect(() => {
 });
 
 const getRelativeTime = (timestamp) => {
-  console.log(timestamp);
   const now = Date.now();
   timestamp = new Date(timestamp).getTime();
   const diff = now - timestamp;
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-
-  console.log(minutes);
 
   if (minutes < 1) return "A l'instant";
   if (minutes < 60) return `${minutes}m`;
@@ -109,6 +111,10 @@ const getRelativeTime = (timestamp) => {
   const minutesFormatted = String(date.getMinutes()).padStart(2, "0");
 
   return `${day}/${month} - ${hoursFormatted}:${minutesFormatted}`;
+};
+
+const handleLogout = () => {
+  if (user.logout()) router.push("/login");
 };
 
 // {

@@ -9,15 +9,20 @@ const roomRoutes = require("./routes/roomRoutes");
 const dbConfig = require("./config/db");
 
 const app = express();
-const server = http.createServer(app); // Serveur HTTP pour Socket.io
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Autorise toutes les origines (adapter en prod)
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
 app.use(express.json());
+// Middleware pour injecter io dans req
+app.use((req, res, next) => {
+  req.io = io; // Injecte l'instance de Socket.IO
+  next();
+});
 
 // Routes API REST
 app.use("/", chatRoutes);

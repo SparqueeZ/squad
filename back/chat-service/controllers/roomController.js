@@ -2,6 +2,9 @@ const axios = require("../config/axios");
 const Room = require("../models/roomModel");
 // const User = require("../models/userModel");
 const Message = require("../models/messageModel");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 async function getUserById(userId) {
   try {
@@ -38,14 +41,35 @@ exports.getAllRooms = async (req, res) => {
   }
 };
 
+// exports.getRoomById = async (req, res) => {
+//   console.log(`[INFO] - getRoomById - roomId : ${req.params.roomId}`);
+//   try {
+//     const room = await Room.findById(req.params.roomId);
+//     // Find the last message in this room
+//     const lastMessage = await Message.findOne({
+//       roomId: req.params.roomId,
+//     }).sort({ createdAt: -1 });
+//     res.json({ room, lastMessage });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 exports.getRoomById = async (req, res) => {
+  console.log(`[INFO] - getRoomById - roomId : ${req.params.roomId}`);
   try {
-    const room = await Room.findById(req.params.roomId);
-    // Find the last message in this room
-    const lastMessage = await Message.findOne({
-      roomId: req.params.roomId,
-    }).sort({ createdAt: -1 });
-    res.json({ room, lastMessage });
+    const room = await Room.findById(req.params.roomId).select(
+      "-createdAt -updatedAt -__v"
+    );
+    const messages = await Message.find({ roomId: req.params.roomId })
+      .select("-createdAt -updatedAt -__v -roomId")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json({
+      ...room._doc,
+      messages,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -152,3 +176,55 @@ async function checkIfUserIsInRoom(userId, roomId) {
 //     res.status(400).json({ error: err.message });
 //   }
 // };
+
+exports.uploadFile = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "Aucun fichier envoyé" });
+  }
+
+  const { roomId, sender } = req.body;
+
+  const fileDetails = {
+    text: `Fichier : ${req.file.originalname}`,
+    type: "file",
+    sender,
+    roomId,
+    viewedBy: [],
+    filePath: `/uploads/${req.file.filename}`,
+    fileName: req.file.originalname,
+  };
+
+  try {
+    // Enregistrer le message dans la base de données
+    const newMessage = new Message(fileDetails);
+    const savedMessage = await newMessage.save();
+
+    // Émettre un événement WebSocket (si applicable)
+    if (req.io && roomId) {
+      req.io.to(roomId).emit("fileUploaded", {
+        ...fileDetails,
+        timestamp: savedMessage.createdAt,
+      });
+    }
+
+    res.status(201).json({
+      message: "Fichier uploadé et message enregistré avec succès",
+      ...savedMessage._doc,
+    });
+  } catch (err) {
+    console.error("Erreur lors de l'enregistrement du message :", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+exports.getFile = (req, res) => {
+  const fileName = req.params.fileName;
+  const filePath = path.join(__dirname, "../uploads", fileName);
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).json({ message: "Fichier introuvable" });
+    }
+    res.download(filePath, fileName);
+  });
+};
