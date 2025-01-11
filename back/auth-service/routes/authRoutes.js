@@ -13,7 +13,20 @@ router.post("/mfa/verify", authController.verifyMFA);
 router.post("/mfa/reset", authController.resetMFA);
 
 router.get("/", authController.getAllUsers);
-router.get("/rooms", authMiddleware, authController.getUserRooms);
-router.post("/internal/:userId", authController.updateUserRooms);
+router.get("/rooms", authenticateToken, authController.getUserRooms);
+// router.post(
+//   "/internal/rooms/:userId",
+//   authenticateToken,
+//   authController.createPrivateRoom
+// );
+
+router.post("/internal/user/data", authController.authenticateToken);
+
+// TODO : Changer la route et en créer une pour pouvoir récupérer les données de l'utilisateur
+router.post(
+  "/messages/viewed",
+  authenticateToken,
+  authController.updateMessageViews
+);
 
 module.exports = router;

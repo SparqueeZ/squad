@@ -1,21 +1,26 @@
-const jwt = require("jsonwebtoken");
+const axios = require("../config/axios");
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
-    console.warn("[WARN] No token provided");
     return res.status(401).json({ message: "No token provided" });
   }
 
-  jwt.verify(token, "jwtsecretdelamortquitue", (err, user) => {
-    if (err) {
-      console.error("[ERROR] Invalid token provided");
-      return res.status(403).json({ message: "Invalid token" });
+  try {
+    const response = await axios.authService.post("/internal/user/data", {
+      token,
+    });
+
+    if (response.status === 200) {
+      req.user = response.data.user;
+      next();
+    } else {
+      res.status(403).json({ message: "Invalid token" });
     }
-    req.user = user;
-    console.log("[INFO] Token authenticated successfully");
-    next();
-  });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
 };
 
 module.exports = authenticateToken;

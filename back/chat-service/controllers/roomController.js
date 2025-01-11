@@ -41,20 +41,6 @@ exports.getAllRooms = async (req, res) => {
   }
 };
 
-// exports.getRoomById = async (req, res) => {
-//   console.log(`[INFO] - getRoomById - roomId : ${req.params.roomId}`);
-//   try {
-//     const room = await Room.findById(req.params.roomId);
-//     // Find the last message in this room
-//     const lastMessage = await Message.findOne({
-//       roomId: req.params.roomId,
-//     }).sort({ createdAt: -1 });
-//     res.json({ room, lastMessage });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
 exports.getRoomById = async (req, res) => {
   console.log(`[INFO] - getRoomById - roomId : ${req.params.roomId}`);
   try {
@@ -79,18 +65,31 @@ exports.createRoom = async (req, res) => {
   try {
     const newRoom = new Room(req.body);
     const savedRoom = await newRoom.save();
-
-    // Update users with the new room ID
     const userIds = req.body.users;
-    console.log(userIds);
+    const privateRoom = req.body.private;
+
+    // Ajouter les utilisateurs à la salle
     await Promise.all(
       userIds.map(async (userId) => {
-        const response = await axios.userService.post(`/internal/${userId}`, {
-          roomId: savedRoom._id.toString(),
-        });
+        const response = await axios.authService.post(
+          `/internal/rooms/${userId}`,
+          {
+            roomId: savedRoom._id.toString(),
+          }
+        );
         console.log(response.data);
       })
     );
+
+    // console.log(userIds);
+    // await Promise.all(
+    //   userIds.map(async (userId) => {
+    //     const response = await axios.userService.post(`/internal/${userId}`, {
+    //       roomId: savedRoom._id.toString(),
+    //     });
+    //     console.log(response.data);
+    //   })
+    // );
 
     res.status(201).json(savedRoom);
   } catch (err) {
@@ -231,10 +230,9 @@ exports.getFile = (req, res) => {
 
 exports.updateMessageViews = async (req, res) => {
   console.log("Updating message views");
-  const user = req.user;
-  const { messageId } = req.body;
+  const { username, messageId } = req.body;
   try {
-    const messages = await updateMessageViewsLogic(messageId, user.username);
+    const messages = await updateMessageViewsLogic(messageId, username);
     res.json(messages);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -277,3 +275,23 @@ async function saveMessage(message) {
 }
 
 exports.updateMessageViewsLogic = updateMessageViewsLogic;
+
+exports.createPrivateRoom = async (req, res) => {
+  const { userId } = req.user;
+  const { title, description, private, category, users } = req.body;
+  users.push(userId);
+
+  try {
+    const room = new Room({
+      title,
+      description,
+      private,
+      category,
+      users,
+    });
+    const savedRoom = await room.save();
+    res.status(201).json(savedRoom);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
