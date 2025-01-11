@@ -6,6 +6,7 @@ const services = {
   authService: process.env.AUTH_SERVICE_URL,
   userService: process.env.USER_SERVICE_URL,
   chatService: process.env.CHAT_SERVICE_URL,
+  socketGateway: process.env.SOCKET_GATEWAY_URL,
 };
 
 if (environment !== "development") {
@@ -13,6 +14,7 @@ if (environment !== "development") {
   services.authService = "http://auth-service:3001";
   services.userService = "http://user-service:3002";
   services.chatService = "http://chat-service:3003";
+  services.socketGateway = "http://socket-gateway:3004";
 }
 
 const createAxiosInstance = (baseURL) => {
@@ -31,6 +33,7 @@ const axiosInstances = {
   authService: createAxiosInstance(services.authService),
   userService: createAxiosInstance(services.userService),
   chatService: createAxiosInstance(services.chatService),
+  socketGateway: createAxiosInstance(services.socketGateway),
 };
 
 module.exports = axiosInstances;
