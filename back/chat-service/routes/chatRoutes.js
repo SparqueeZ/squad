@@ -6,6 +6,7 @@ const {
   getUnreadMessagesCount,
   getMessageById,
   getLastMessagesByRoomId,
+  saveMessage,
   // getRoomInformations,
 } = require("../controllers/chatController");
 
@@ -19,5 +20,7 @@ router.get("/internal/last/:roomId", getLastMessagesByRoomId);
 // router.get("/internal/:roomId", getRoomInformations);
 router.post("/internal/unread", getUnreadMessagesCount);
 router.get("/internal/findById", getMessageById);
+
+router.post("/internal/messages/save", saveMessage);
 
 module.exports = router;

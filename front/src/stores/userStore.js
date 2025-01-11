@@ -20,17 +20,17 @@ export const useUserStore = defineStore("user", {
       const router = useRouter();
       try {
         const csrfToken = getCsrfToken();
-        const response = await axios.get("/api/user/profile", {
+        const response = await axios.get("/api/auth/profile", {
           withCredentials: true,
           headers: {
             "x-csrf-token": csrfToken,
           },
         });
-        this.username = response.data.general.username;
-        this.email = response.data.general.email;
-        this.role = response.data.general.role;
-        this.unreadMessages = response.data.general.unreadMessages;
-        this.rooms = response.data.rooms;
+        this.username = response.data.user.username;
+        this.email = response.data.user.email;
+        this.role = response.data.user.role;
+        this.unreadMessages = [];
+        this.rooms = response.data.user.rooms;
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
         router.push("/");
@@ -46,17 +46,18 @@ export const useUserStore = defineStore("user", {
         if (response.status === 200) {
           const csrfToken = getCsrfToken();
 
-          const profile = await axios.get("/api/user/profile", {
+          const profile = await axios.get("/api/auth/profile", {
             withCredentials: true,
             headers: {
               "x-csrf-token": csrfToken,
             },
           });
-          this.username = profile.data.general.username;
-          this.email = profile.data.general.email;
-          this.role = profile.data.general.role;
-          this.unreadMessages = profile.data.general.unreadMessages;
-          this.rooms = profile.data.rooms;
+          console.log(profile.data.user.rooms[0]);
+          this.username = profile.data.user.username;
+          this.email = profile.data.user.email;
+          this.role = profile.data.user.role;
+          this.unreadMessages = [];
+          this.rooms = profile.data.user.rooms;
 
           return true;
         } else {
@@ -79,9 +80,10 @@ export const useUserStore = defineStore("user", {
     },
     async updateLastMessageOfRoom(message, roomId) {
       this.rooms.forEach((room) => {
-        if (room.data.id === roomId) {
-          room.lastMessages.unshift(message);
-          console.warn(room.lastMessages);
+        console.log(room._id, roomId);
+        if (room._id === roomId) {
+          room.messages.unshift(message);
+          console.warn(room.messages.at(-1));
         }
       });
     },

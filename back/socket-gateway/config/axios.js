@@ -1,6 +1,8 @@
 const axios = require("axios");
+require("dotenv").config();
 
 const environment = process.env.NODE_ENV ? process.env.NODE_ENV : "production";
+console.log("Environment:", environment);
 
 const services = {
   authService: process.env.AUTH_SERVICE_URL,

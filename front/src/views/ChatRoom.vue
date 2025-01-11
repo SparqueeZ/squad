@@ -25,9 +25,7 @@
           <p class="message-content">{{ message.text }}</p>
           <a
             v-if="message.filePath"
-            :href="message.filePath"
-            target="_blank"
-            download
+            @click="downloadFile(message.filePath, message.fileName)"
           >
             {{ message.fileName }}
           </a>
@@ -229,15 +227,36 @@ const uploadFile = async () => {
   formData.append("roomId", route.params.id);
   formData.append("sender", user.username);
 
+  // Appel a l'API pour sauvegarder le fichier
   try {
     const response = await axios.post("/api/chat/room/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    console.log(`Fichier uploadé : ${response.data.path}`);
-    file.value = null; // Clear the file after successful upload
+    console.log("!!!! Fichier uploadé :", response.data);
+
+    // Une fois cela fait, Appel au WS pour diffuser le fichier
+    socket.emit("fileUploaded", {
+      response,
+    });
+  } catch (error) {}
+};
+
+const downloadFile = async (filePath, fileName) => {
+  filePath = filePath.replace("uploads/", "");
+  try {
+    const response = await axios.get(`/api/chat/room/files/${filePath}`, {
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Error downloading file:", error);
   }
 };
 
@@ -245,12 +264,13 @@ onMounted(() => {
   canvas.value = document.getElementById("canvas");
   console.log(user.rooms);
   user.rooms.forEach((r) => {
-    socket.emit("joinRoom", user.username, r.data.id);
+    socket.emit("joinRoom", user.username, r._id);
   });
   socket.on("receiveMessage", (message) => {
     if (message.text.includes("Joyeux anniversaire")) {
       triggerConfetti(canvas.value, 5000);
     }
+    console.log("Message reçu :", message);
     chat.chatList.push(message);
     user.updateLastMessageOfRoom(message, message.roomId);
     scrollToBottom();

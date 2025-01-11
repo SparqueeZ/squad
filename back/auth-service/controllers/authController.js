@@ -152,7 +152,7 @@ exports.getUserProfile = async (req, res) => {
     res.status(200).json({
       user: {
         ...db_user._doc,
-        // rooms,
+        rooms,
       },
     });
   } catch (err) {

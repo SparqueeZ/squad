@@ -4,7 +4,6 @@ const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 const chatRoutes = require("./routes/chatRoutes");
-const chatSocket = require("./sockets/chatSocket");
 const roomRoutes = require("./routes/roomRoutes");
 const dbConfig = require("./config/db");
 const cookieParser = require("cookie-parser");

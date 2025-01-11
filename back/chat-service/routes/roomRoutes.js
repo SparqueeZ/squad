@@ -51,17 +51,4 @@ router.post("/messages/viewed", roomController.updateMessageViews);
 
 router.post("/private", authenticateToken, roomController.createPrivateRoom);
 
-// router.post("/upload", upload.single("file"), roomController.uploadFile);
-// router.get("/files/:fileName", (req, res) => {
-//   const fileName = req.params.fileName;
-//   const filePath = path.join(__dirname, "../uploads", fileName);
-
-//   res.download(filePath, fileName, (err) => {
-//     if (err) {
-//       console.error("Error while serving the file:", err);
-//       res.status(404).json({ message: "Fichier introuvable" });
-//     }
-//   });
-// });
-
 module.exports = router;

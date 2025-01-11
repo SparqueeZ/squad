@@ -198,14 +198,6 @@ exports.uploadFile = async (req, res) => {
     const newMessage = new Message(fileDetails);
     const savedMessage = await newMessage.save();
 
-    // Émettre un événement WebSocket (si applicable)
-    if (req.io && roomId) {
-      req.io.to(roomId).emit("fileUploaded", {
-        ...fileDetails,
-        timestamp: savedMessage.createdAt,
-      });
-    }
-
     res.status(201).json({
       message: "Fichier uploadé et message enregistré avec succès",
       ...savedMessage._doc,
@@ -219,12 +211,21 @@ exports.uploadFile = async (req, res) => {
 exports.getFile = (req, res) => {
   const fileName = req.params.fileName;
   const filePath = path.join(__dirname, "../uploads", fileName);
+  console.log("[INFO] - getFile - filePath : ", filePath);
+  console.log(fileName);
 
   fs.access(filePath, fs.constants.F_OK, (err) => {
     if (err) {
       return res.status(404).json({ message: "Fichier introuvable" });
     }
-    res.download(filePath, fileName);
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.download(filePath, fileName, (err) => {
+      if (err) {
+        console.error("Error downloading file:", err);
+        res.status(500).json({ message: "Erreur serveur" });
+      }
+    });
   });
 };
 

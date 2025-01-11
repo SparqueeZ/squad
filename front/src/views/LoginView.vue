@@ -68,7 +68,7 @@ const login = async () => {
       setTimeout(() => {
         console.log(user.username);
         if (user.username) {
-          router.push("/chat");
+          router.push("/67562a9100035c1096e6ba9d");
         }
       }, 1000);
     } else {
@@ -83,12 +83,12 @@ const goToRegister = () => {
 };
 
 onMounted(async () => {
-  turnstile.render("#turnstile", {
-    sitekey: "0x4AAAAAAA1lSa4o0C87pIHl",
-    callback: function (token) {
-      captchaToken.value = token;
-    },
-  });
+  // turnstile.render("#turnstile", {
+  //   sitekey: "0x4AAAAAAA1lSa4o0C87pIHl",
+  //   callback: function (token) {
+  //     captchaToken.value = token;
+  //   },
+  // });
   // try {
   //   await security.fetchCsrfToken();
   // } catch (error) {

@@ -94,3 +94,14 @@ exports.getMessageById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.saveMessage = async (req, res) => {
+  console.log("[INFO] Saving message data");
+  try {
+    const newMessage = new Message(req.body.message);
+    const savedMessage = await newMessage.save();
+    res.status(201).json(savedMessage);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
