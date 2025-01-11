@@ -20,8 +20,8 @@ const validateInput = (username, email) => {
 };
 
 exports.loginUser = async (req, res) => {
-  console.log("[INFO] - loginUser - username : ", username);
   const { username, password } = req.body;
+  console.log("[INFO] - loginUser - username : ", username);
 
   try {
     const user = await User.findOne({ username });
@@ -152,7 +152,7 @@ exports.getUserProfile = async (req, res) => {
     res.status(200).json({
       user: {
         ...db_user._doc,
-        rooms,
+        // rooms,
       },
     });
   } catch (err) {
@@ -305,4 +305,55 @@ exports.updateUserRooms = async (req, res) => {
     console.error("[ERROR] Missing room ID");
     res.status(400).json({ error: "Missing room ID" });
   }
+};
+
+exports.updateMessageViews = async (req, res) => {
+  console.log("[INFO] - updateMessageViews");
+  const user = req.user;
+  const { messageId } = req.body;
+
+  // Chercher le username en fonction du userId
+  const username = await User.findById(user._id).select("username");
+
+  // Envoyer une requete au chat-service pour mettre à jour les messages vus
+  try {
+    const response = await axios.chatService.post(`/message/views`, {
+      messageId,
+      username,
+    });
+    res.status(200).json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getUserData = async (req, res) => {
+  console.log("[INFO] - getUserData");
+  const user = req.user;
+  try {
+    const userData = await User.findById(user._id).select(
+      "-password -mfaSecret -__v"
+    );
+    res.status(200).json(userData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.authenticateToken = (req, res) => {
+  const token = req.body.token;
+  console.log("[INFO] - authenticateToken ");
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  jwt.verify(token, "jwtsecretdelamortquitue", (err, user) => {
+    if (err) {
+      console.error("[ERROR] - authenticateToken - ", err);
+      return res.status(403).json({ message: "Invalid token" });
+    }
+    req.user = user;
+    console.log("[SUCCESS] - authenticateToken - Token sended successfully");
+    res.status(200).json({ user: user });
+  });
 };

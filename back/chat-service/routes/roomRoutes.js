@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const roomController = require("../controllers/roomController");
 const multer = require("multer");
-const path = require("path"); // Add this line
-const authMiddleware = require("../middlewares/authMiddleware");
+const path = require("path");
+const authenticateToken = require("../middlewares/authMiddleware");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -36,8 +36,6 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
-router.post("/messages/viewed", authMiddleware, roomController.updateMessageViews);
-
 router.get("/", roomController.getAllRooms);
 router.get("/:roomId", roomController.getRoomById);
 router.post("/", roomController.createRoom);
@@ -48,6 +46,10 @@ router.post("/internal/addUser/:roomId", roomController.addUserToRoom);
 
 router.post("/upload", upload.single("file"), roomController.uploadFile);
 router.get("/files/:fileName", roomController.getFile);
+
+router.post("/messages/viewed", roomController.updateMessageViews);
+
+router.post("/private", authenticateToken, roomController.createPrivateRoom);
 
 // router.post("/upload", upload.single("file"), roomController.uploadFile);
 // router.get("/files/:fileName", (req, res) => {
@@ -61,8 +63,5 @@ router.get("/files/:fileName", roomController.getFile);
 //     }
 //   });
 // });
-
-
-
 
 module.exports = router;
