@@ -41,14 +41,35 @@ exports.getAllRooms = async (req, res) => {
   }
 };
 
+// exports.getRoomById = async (req, res) => {
+//   console.log(`[INFO] - getRoomById - roomId : ${req.params.roomId}`);
+//   try {
+//     const room = await Room.findById(req.params.roomId);
+//     // Find the last message in this room
+//     const lastMessage = await Message.findOne({
+//       roomId: req.params.roomId,
+//     }).sort({ createdAt: -1 });
+//     res.json({ room, lastMessage });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 exports.getRoomById = async (req, res) => {
+  console.log(`[INFO] - getRoomById - roomId : ${req.params.roomId}`);
   try {
-    const room = await Room.findById(req.params.roomId);
-    // Find the last message in this room
-    const lastMessage = await Message.findOne({
-      roomId: req.params.roomId,
-    }).sort({ createdAt: -1 });
-    res.json({ room, lastMessage });
+    const room = await Room.findById(req.params.roomId).select(
+      "-createdAt -updatedAt -__v"
+    );
+    const messages = await Message.find({ roomId: req.params.roomId })
+      .select("-createdAt -updatedAt -__v -roomId")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json({
+      ...room._doc,
+      messages,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
