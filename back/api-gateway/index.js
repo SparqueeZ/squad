@@ -20,7 +20,7 @@ app.use(limiter);
 // Utilisation de CORS
 app.use(
   cors({
-    origin: "https://sparqueez.org",
+    origin: "http://localhost",
     credentials: true,
   })
 );
@@ -38,17 +38,21 @@ app.use(
 
 app.use(
   "/api/chat",
-  createProxyMiddleware({ target: "http://localhost:3003", changeOrigin: true })
-);
-
-app.use(
-  "/",
   createProxyMiddleware({
     target: "http://localhost:3003",
     changeOrigin: true,
     ws: true,
   })
 );
+
+// app.use(
+//   "/",
+//   createProxyMiddleware({
+//     target: "http://localhost:3003",
+//     changeOrigin: true,
+//     ws: true,
+//   })
+// );
 
 app.use(express.json());
 

@@ -18,6 +18,11 @@ const io = new Server(server, {
 });
 
 app.use(express.json());
+// Middleware pour injecter io dans req
+app.use((req, res, next) => {
+  req.io = io; // Injecte l'instance de Socket.IO
+  next();
+});
 
 // Routes API REST
 app.use("/", chatRoutes);

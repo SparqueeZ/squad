@@ -39,7 +39,7 @@ const user = useUserStore();
 const security = useSecurityStore();
 
 const username = ref("Baptiste");
-const password = ref("");
+const password = ref("12345");
 const captchaToken = ref("");
 // const csrfToken = ref("");
 const router = useRouter();

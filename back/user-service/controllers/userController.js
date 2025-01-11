@@ -49,27 +49,27 @@ exports.getFullProfile = async (req, res) => {
           return;
         }
         const roomInformations = await getRoomInformationsById(roomId);
-        if (!roomInformations) {
-          console.error(
-            `[ERROR] Room ${roomId} data is undefined, deleting room for user ${user.username}`
-          );
-          const userAimed = await User.findOne({
-            username: user.username,
-            email: user.email,
-          });
-          const roomToDeleteIndex = userAimed.rooms.indexOf(roomId);
-          userAimed.rooms.splice(roomToDeleteIndex, 1);
-          databaseUserRooms.splice(roomToDeleteIndex, 1);
-          user.rooms = userAimed.rooms;
-          if (await userAimed.save()) {
-            console.log(
-              `[SUCCESS] Room ${roomId}deleted successfully deleted from user ${user.username}`
-            );
-            return null;
-          } else {
-            console.error("[ERROR] Room deletion failed");
-          }
-        }
+        // if (!roomInformations) {
+        //   console.error(
+        //     `[ERROR] Room ${roomId} data is undefined, deleting room for user ${user.username}`
+        //   );
+        //   const userAimed = await User.findOne({
+        //     username: user.username,
+        //     email: user.email,
+        //   });
+        //   const roomToDeleteIndex = userAimed.rooms.indexOf(roomId);
+        //   userAimed.rooms.splice(roomToDeleteIndex, 1);
+        //   databaseUserRooms.splice(roomToDeleteIndex, 1);
+        //   user.rooms = userAimed.rooms;
+        //   if (await userAimed.save()) {
+        //     console.log(
+        //       `[SUCCESS] Room ${roomId}deleted successfully deleted from user ${user.username}`
+        //     );
+        //     return null;
+        //   } else {
+        //     console.error("[ERROR] Room deletion failed");
+        //   }
+        // }
         return {
           data: roomInformations ? roomInformations : {},
           unreadMessages:

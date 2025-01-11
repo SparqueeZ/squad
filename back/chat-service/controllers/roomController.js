@@ -2,6 +2,9 @@ const axios = require("../config/axios");
 const Room = require("../models/roomModel");
 // const User = require("../models/userModel");
 const Message = require("../models/messageModel");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 async function getUserById(userId) {
   try {
@@ -154,14 +157,53 @@ async function checkIfUserIsInRoom(userId, roomId) {
 // };
 
 exports.uploadFile = async (req, res) => {
-  console.log(req.file);
   if (!req.file) {
     return res.status(400).json({ message: "Aucun fichier envoyé" });
   }
 
-  res.status(200).json({
-    message: "Fichier uploadé avec succès",
-    file: req.file.filename,
-    path: `/files/${req.file.filename}`,
+  const { roomId, sender } = req.body;
+
+  const fileDetails = {
+    text: `Fichier : ${req.file.originalname}`,
+    type: "file",
+    sender,
+    roomId,
+    viewedBy: [],
+    filePath: `/uploads/${req.file.filename}`,
+    fileName: req.file.originalname,
+  };
+
+  try {
+    // Enregistrer le message dans la base de données
+    const newMessage = new Message(fileDetails);
+    const savedMessage = await newMessage.save();
+
+    // Émettre un événement WebSocket (si applicable)
+    if (req.io && roomId) {
+      req.io.to(roomId).emit("fileUploaded", {
+        ...fileDetails,
+        timestamp: savedMessage.createdAt,
+      });
+    }
+
+    res.status(201).json({
+      message: "Fichier uploadé et message enregistré avec succès",
+      ...savedMessage._doc,
+    });
+  } catch (err) {
+    console.error("Erreur lors de l'enregistrement du message :", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+exports.getFile = (req, res) => {
+  const fileName = req.params.fileName;
+  const filePath = path.join(__dirname, "../uploads", fileName);
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).json({ message: "Fichier introuvable" });
+    }
+    res.download(filePath, fileName);
   });
 };

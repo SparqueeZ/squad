@@ -20,10 +20,17 @@
         <div class="message-sender-img" @click="console.log('Open DM')"></div>
         <div class="message-bubble">
           <div class="message-sender">
-            <Icon v-if="user.role === 'admin'" name="crown" />
             <p>{{ message.sender }}</p>
           </div>
           <p class="message-content">{{ message.text }}</p>
+          <a
+            v-if="message.filePath"
+            :href="message.filePath"
+            target="_blank"
+            download
+          >
+            {{ message.fileName }}
+          </a>
           <div class="message-infos">
             <p class="message-date">
               {{ getDateString(message.timestamp) }}
@@ -214,24 +221,23 @@ const handleFileDrop = (event) => {
   }
 };
 
-const handleFileUploadResponse = (response) => {
-  console.log(`Fichier uploadé : ${response.data.path}`);
-  file.value = null; // Clear the file after successful upload
-};
-
 const uploadFile = async () => {
   if (!file.value) return;
 
   const formData = new FormData();
   formData.append("file", file.value);
+  formData.append("roomId", route.params.id);
+  formData.append("sender", user.username);
 
   try {
     const response = await axios.post("/api/chat/room/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    handleFileUploadResponse(response);
+
+    console.log(`Fichier uploadé : ${response.data.path}`);
+    file.value = null; // Clear the file after successful upload
   } catch (error) {
-    console.error(error);
+    console.error("Error uploading file:", error);
   }
 };
 
@@ -252,6 +258,21 @@ onMounted(() => {
   socket.on("isTyping", (userData) => {
     if (!someoneIsTyping.value.includes(userData)) {
       someoneIsTyping.value.push(userData);
+    }
+  });
+
+  socket.on("fileUploaded", (data) => {
+    if (data.type === "file") {
+      console.log(`Fichier reçu : ${data.fileName}`);
+      chat.chatList.push({
+        text: `Fichier reçu : ${data.fileName}`,
+        filePath: data.filePath,
+        fileName: data.fileName,
+        sender: data.sender,
+        timestamp: getActualDateTime(),
+        roomId: data.roomId,
+        viewedBy: ["Baptiste"],
+      });
     }
   });
 
