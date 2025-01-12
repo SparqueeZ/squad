@@ -43,12 +43,13 @@ export const useUserStore = defineStore("user", {
         router.push("/");
       }
     },
-    async login(username, password) {
+    async login(username, password, mfa) {
       const router = useRouter();
       try {
         const response = await axios.post("/api/auth/login", {
           username,
           password,
+          mfa,
         });
         if (response.status === 200) {
           const csrfToken = getCsrfToken();
