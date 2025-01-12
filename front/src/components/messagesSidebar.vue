@@ -16,7 +16,7 @@
           <div class="message-img"></div>
           <div class="message-body">
             <div class="message-top">
-              <p class="message-sender">{{ message.sender }}</p>
+              <p class="message-sender">{{ message.sender.username }}</p>
               <div class="message-status">
                 <Icon v-if="message.seen" name="tickdouble" />
                 <p class="message-sended-timing">2m</p>
@@ -36,28 +36,38 @@
           v-for="(r, index) in user.rooms"
           :key="index"
           :id="`room-${index}`"
-          :to="`/${r.data.id}`"
+          :to="`/${r._id}`"
         >
           <div class="message-card">
             <div class="message-img"></div>
             <div class="message-body">
               <div class="message-top">
-                <div class="message-sender">{{ r.data.title }}</div>
+                <div class="message-sender">{{ r.title }}</div>
                 <div class="message-status">
                   <Icon v-if="r.seen" name="tickdouble" />
-                  <p class="message-sended-timing" v-if="r.lastMessages[0]">
-                    {{ getRelativeTime(r.lastMessages[0].timestamp) }}
+                  <p class="message-sended-timing" v-if="r.messages.length > 0">
+                    {{
+                      getRelativeTime(
+                        r.messages[r.messages.length - 1].timestamp
+                      )
+                    }}
                   </p>
                 </div>
               </div>
               <div class="message-btm">
                 <p class="message-content">
                   <strong>{{
-                    r.lastMessages[0]
-                      ? `${r.lastMessages[0].sender} : `
+                    r.messages.length > 0
+                      ? `${
+                          r.messages[r.messages.length - 1].sender.username
+                        } : `
                       : "Aucun message envoyé."
                   }}</strong
-                  >{{ r.lastMessages[0] ? r.lastMessages[0].text : "" }}
+                  >{{
+                    r.messages.length > 0
+                      ? r.messages[r.messages.length - 1].text
+                      : ""
+                  }}
                 </p>
                 <div class="message-status">
                   <Icon v-if="r.pinned" name="pin" />
@@ -86,12 +96,12 @@ const user = useUserStore();
 const room = useRoomStore();
 const messages = ref([]);
 
-watchEffect(() => {
-  room.roomList.lastMessage,
-    (newLastMessage) => {
-      console.log("There is a new last message", newLastMessage);
-    };
-});
+// watchEffect(() => {
+//   room.roomList.lastMessage,
+//     (newLastMessage) => {
+//       console.log("There is a new last message", newLastMessage);
+//     };
+// });
 
 const getRelativeTime = (timestamp) => {
   const now = Date.now();

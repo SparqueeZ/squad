@@ -47,7 +47,10 @@ exports.createMessage = async (req, res) => {
     const message = {
       roomId: req.body.room,
       text: req.body.message.text,
-      sender: req.body.message.sender,
+      sender: {
+        username: req.body.message.sender.username,
+        _id: req.body.message.sender.userId,
+      },
     };
     const newMessage = new Message(message);
     const savedMessage = await newMessage.save();
@@ -92,5 +95,19 @@ exports.getMessageById = async (req, res) => {
     res.json(message);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.saveMessage = async (req, res) => {
+  console.log("[INFO] Saving message data");
+  try {
+    console.log(req.body.message);
+    const newMessage = new Message(req.body.message);
+    const savedMessage = await newMessage.save();
+    console.log("[SUCCESS] Message saved successfully");
+    res.status(201).json(savedMessage);
+  } catch (err) {
+    console.error("[ERROR] Error saving message:", err);
+    res.status(400).json({ error: err.message });
   }
 };

@@ -8,10 +8,9 @@ dotenv.config();
 const app = express();
 app.set("trust proxy", 1);
 
-// Middleware pour limiter le nombre de requêtes par IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   message: "Too many requests from this IP, please try again later.",
 });
 
@@ -41,7 +40,6 @@ app.use(
   createProxyMiddleware({
     target: "http://localhost:3003",
     changeOrigin: true,
-    ws: true,
   })
 );
 

@@ -18,7 +18,11 @@ const authenticateToken = async (req, res, next) => {
       res.status(403).json({ message: "Invalid token" });
     }
   } catch (error) {
-    console.error(error.message);
+    console.error(
+      "[ERROR] Error while authenticating token :",
+      error.message,
+      error.response.data
+    );
     res.status(500).json({ error: error.message });
   }
 };

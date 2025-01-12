@@ -1,8 +1,9 @@
 const express = require("express");
-const axios = require("./config/axios");
+const axios = require("axios");
 const { Server } = require("socket.io");
 const chatSocket = require("./sockets/chatSocket");
 const http = require("http");
+require("dotenv").config();
 
 const app = express();
 app.use(express.json());

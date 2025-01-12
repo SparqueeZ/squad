@@ -11,23 +11,25 @@
     </div>
     <div class="messages" ref="messagesContainer">
       <div
-        v-for="message in chat.chatList"
+        v-for="message in user.rooms.find((r) => r._id === route.params.id)
+          .messages"
         :key="message._id"
         :id="message._id"
         class="message"
         :class="user.username === message.sender ? 'sender' : ''"
       >
-        <div class="message-sender-img" @click="console.log('Open DM')"></div>
+        <div
+          class="message-sender-img"
+          @click="createPrivateRoom(message.sender._id)"
+        ></div>
         <div class="message-bubble">
           <div class="message-sender">
-            <p>{{ message.sender }}</p>
+            <p>{{ message.sender.username }}</p>
           </div>
           <p class="message-content">{{ message.text }}</p>
           <a
             v-if="message.filePath"
-            :href="message.filePath"
-            target="_blank"
-            download
+            @click="downloadFile(message.filePath, message.fileName)"
           >
             {{ message.fileName }}
           </a>
@@ -82,11 +84,13 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { useRouter } from "vue-router";
 import { io } from "socket.io-client";
 import Icon from "@/components/lib/Icon.vue";
 import { useRoute } from "vue-router";
 import { triggerConfetti } from "@/assets/lib/Confetti";
 import axios from "../assets/axios";
+const router = useRouter();
 
 const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
 const socket = io(APISOCKETURL);
@@ -125,11 +129,12 @@ const sendMessage = () => {
   ) {
     const message = {
       text: newMessage.value,
-      sender: user.username,
+      sender: { username: user.username, _id: user._id },
       timestamp: getActualDateTime(),
       roomId: route.params.id,
       viewedBy: ["Baptiste"],
     };
+    console.log("Message envoyé :", message);
     const data = {
       room: route.params.id,
       message: message,
@@ -212,6 +217,19 @@ const handleScroll = () => {
   // });
 };
 
+const createPrivateRoom = async (senderId) => {
+  const response = await room.createPrivateRoom(
+    "Conversation",
+    "Conversation privée entre 2 utilsateurs.",
+    "discussion",
+    [senderId]
+  );
+  if (response) {
+    console.log("Room created :", response);
+    router.push(`/${response}`);
+  }
+};
+
 const handleFileDrop = (event) => {
   event.preventDefault();
   const droppedFile = event.dataTransfer.files[0];
@@ -229,15 +247,36 @@ const uploadFile = async () => {
   formData.append("roomId", route.params.id);
   formData.append("sender", user.username);
 
+  // Appel a l'API pour sauvegarder le fichier
   try {
     const response = await axios.post("/api/chat/room/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    console.log(`Fichier uploadé : ${response.data.path}`);
-    file.value = null; // Clear the file after successful upload
+    console.log("!!!! Fichier uploadé :", response.data);
+
+    // Une fois cela fait, Appel au WS pour diffuser le fichier
+    socket.emit("fileUploaded", {
+      response,
+    });
+  } catch (error) {}
+};
+
+const downloadFile = async (filePath, fileName) => {
+  filePath = filePath.replace("uploads/", "");
+  try {
+    const response = await axios.get(`/api/chat/room/files/${filePath}`, {
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Error downloading file:", error);
   }
 };
 
@@ -245,14 +284,15 @@ onMounted(() => {
   canvas.value = document.getElementById("canvas");
   console.log(user.rooms);
   user.rooms.forEach((r) => {
-    socket.emit("joinRoom", user.username, r.data.id);
+    socket.emit("joinRoom", user.username, r._id);
   });
   socket.on("receiveMessage", (message) => {
     if (message.text.includes("Joyeux anniversaire")) {
       triggerConfetti(canvas.value, 5000);
     }
-    chat.chatList.push(message);
-    user.updateLastMessageOfRoom(message, message.roomId);
+    console.log("Message reçu :", message);
+    user.addMessageToRoom(message, message.roomId);
+    // user.updateLastMessageOfRoom(message, message.roomId);
     scrollToBottom();
   });
   socket.on("isTyping", (userData) => {

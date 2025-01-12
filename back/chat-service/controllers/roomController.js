@@ -1,6 +1,5 @@
 const axios = require("../config/axios");
 const Room = require("../models/roomModel");
-//const User = require("../models/userModel");
 const Message = require("../models/messageModel");
 const multer = require("multer");
 const path = require("path");
@@ -52,11 +51,13 @@ exports.getRoomById = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(20);
 
+    console.log("[SUCCESS] - getRoomById - room sended successfully");
     res.json({
       ...room._doc,
       messages,
     });
   } catch (err) {
+    console.error("[ERROR] - getRoomById - ", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -198,14 +199,6 @@ exports.uploadFile = async (req, res) => {
     const newMessage = new Message(fileDetails);
     const savedMessage = await newMessage.save();
 
-    // Émettre un événement WebSocket (si applicable)
-    if (req.io && roomId) {
-      req.io.to(roomId).emit("fileUploaded", {
-        ...fileDetails,
-        timestamp: savedMessage.createdAt,
-      });
-    }
-
     res.status(201).json({
       message: "Fichier uploadé et message enregistré avec succès",
       ...savedMessage._doc,
@@ -219,12 +212,21 @@ exports.uploadFile = async (req, res) => {
 exports.getFile = (req, res) => {
   const fileName = req.params.fileName;
   const filePath = path.join(__dirname, "../uploads", fileName);
+  console.log("[INFO] - getFile - filePath : ", filePath);
+  console.log(fileName);
 
   fs.access(filePath, fs.constants.F_OK, (err) => {
     if (err) {
       return res.status(404).json({ message: "Fichier introuvable" });
     }
-    res.download(filePath, fileName);
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.download(filePath, fileName, (err) => {
+      if (err) {
+        console.error("Error downloading file:", err);
+        res.status(500).json({ message: "Erreur serveur" });
+      }
+    });
   });
 };
 
@@ -281,6 +283,20 @@ exports.createPrivateRoom = async (req, res) => {
   const { title, description, private, category, users } = req.body;
   users.push(userId);
 
+  // Vérifier si une salle privée existe déjà avec les mêmes utilisateurs
+  const existingRoom = await Room.findOne({
+    users: { $all: users },
+    private: true,
+  }).select("-createdAt -updatedAt -__v");
+  if (existingRoom) {
+    console.log(
+      "[INFO] Private room already exists with the same users, returning existing room"
+    );
+    return res
+      .status(200)
+      .json({ message: "Private room already exists", existingRoom });
+  }
+
   try {
     const room = new Room({
       title,
@@ -290,8 +306,25 @@ exports.createPrivateRoom = async (req, res) => {
       users,
     });
     const savedRoom = await room.save();
+
+    // Ajouter les rooms dans la liste des rooms de chaque utilisateur
+    console.log("[INFO] Adding room to users");
+    await Promise.all(
+      users.map(async (user) => {
+        const response = await axios.authService.put(
+          `/internal/rooms/${user}`,
+          {
+            roomId: savedRoom._id.toString(),
+          }
+        );
+      })
+    );
+    console.log("[SUCCESS] Users added to room successfully");
+
+    console.log("[SUCCESS] Private room created successfully");
     res.status(201).json(savedRoom);
   } catch (error) {
+    console.error("[ERROR] Error while creating private room :", error);
     res.status(500).json({ error: error.message });
   }
 };

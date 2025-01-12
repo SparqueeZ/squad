@@ -23,8 +23,14 @@ const messageSchema = new mongoose.Schema({
     required: false,
   },
   sender: {
-    type: String,
-    required: true,
+    username: {
+      type: String,
+      required: true,
+    },
+    _id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
   },
   timestamp: {
     type: Date,
