@@ -5,6 +5,7 @@ import RegisterView from "../views/RegisterView.vue";
 import AppLayout from "../layouts/AppLayout.vue";
 import DemoView from "@/views/DemoView.vue";
 import ChatOverview from "@/views/ChatOverview.vue";
+import ProfileView from "../views/ProfileView.vue";
 // import NotFound from "../views/NotFound.vue"; // Exemple pour la page 404
 
 const routes = [
@@ -24,6 +25,11 @@ const routes = [
         name: "chat-room",
         component: ChatRoom,
       },
+      {
+        path: "/profile", //correspond à "/profile"
+        name: "profile",
+        component: ProfileView,
+      }
     ],
   },
   {

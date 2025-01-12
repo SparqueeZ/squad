@@ -360,7 +360,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  messagesContainer.value.removeEventListener("scroll", handleScroll);
+  //messagesContainer.value.removeEventListener("scroll", handleScroll);
   socket.off("receiveMessage");
 });
 

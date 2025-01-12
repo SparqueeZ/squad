@@ -433,6 +433,28 @@ exports.updateUserRooms = async (req, res) => {
   }
 };
 
+exports.updateUserProfile = async (req, res) => {
+  console.log(`[INFO] Updating user's ${req.user.userId} profile with : ${req.body.email}`);
+  const userId = req.user.userId;
+  const email = req.body.email;
+  
+  if (userId) {
+    console.log(email);
+    try {
+      const user = await User.updateOne(
+        {_id: userId},
+        { $set: { email: email } }
+      );
+      res.json(user);
+    } catch (err) {
+      console.error(err.message);
+      res.status(400).json({ error: err.message });
+    }
+  } else {
+    console.error("[ERROR] missing user Id");
+  }
+}
+
 exports.getUserImages = async (req, res) => {
   try {
     console.log("[INFO] - getUserImages");

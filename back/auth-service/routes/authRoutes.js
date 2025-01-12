@@ -37,6 +37,7 @@ router.post(
   authController.registerUser
 );
 router.get("/profile", authenticateToken, authController.getUserProfile);
+router.put("/infosUpdate", authenticateToken, authController.updateUserProfile);
 router.post("/profile", authenticateToken, authController.getUserProfile);
 
 router.post("/mfa/setup", authController.setupMFA);
