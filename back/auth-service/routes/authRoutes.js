@@ -7,6 +7,7 @@ router.post("/login", authController.loginUser);
 router.get("/logout", authController.logoutUser);
 router.post("/register", authController.registerUser);
 router.get("/profile", authenticateToken, authController.getUserProfile);
+router.put("/infosUpdate", authenticateToken, authController.updateUserProfile);
 
 router.post("/mfa/setup", authController.setupMFA);
 router.post("/mfa/verify", authController.verifyMFA);

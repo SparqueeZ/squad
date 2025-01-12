@@ -16,7 +16,7 @@
         :key="message._id"
         :id="message._id"
         class="message"
-        :class="user.username === message.sender ? 'sender' : ''"
+        :class="user.username === message.sender.username ? 'sender' : ''"
       >
         <div
           class="message-sender-img"
@@ -340,7 +340,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  messagesContainer.value.removeEventListener("scroll", handleScroll);
+  //messagesContainer.value.removeEventListener("scroll", handleScroll);
   socket.off("receiveMessage");
 });
 

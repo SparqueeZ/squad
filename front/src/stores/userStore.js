@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import axios from "../assets/axios.js";
 import { useRouter } from "vue-router";
+import dayjs from "dayjs";
 // import { io } from "socket.io-client";
 // const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
 // export const socket = io(APISOCKETURL);
@@ -13,6 +14,7 @@ export const useUserStore = defineStore("user", {
     role: null,
     unreadMessages: 0,
     rooms: [],
+    createdAt : null,
     csrfToken: "",
     _id: "",
   }),
@@ -32,6 +34,7 @@ export const useUserStore = defineStore("user", {
         this.role = response.data.user.role;
         this.unreadMessages = [];
         this.rooms = response.data.user.rooms;
+        this.createdAt = dayjs(response.data.user.createdAt).format("DD/MM/YYYY");
         this._id = response.data.user._id;
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
@@ -59,6 +62,7 @@ export const useUserStore = defineStore("user", {
           this.role = profile.data.user.role;
           this.unreadMessages = [];
           this.rooms = profile.data.user.rooms;
+          this.createdAt = profile.data.user.createdAt;
           // this.csrfToken = csrfToken;
           this._id = profile.data.user._id;
 
@@ -72,6 +76,14 @@ export const useUserStore = defineStore("user", {
         router.push("/login");
       }
     },
+    async updateEmail(email) {
+      try {
+        await axios.put(`/api/auth/infosUpdate`, {email});
+      } catch (error) {
+        console.error("Erreur lors du changement d'email : ", error);
+      }
+    },
+
     async updateMessageViews(messageId) {
       try {
         await axios.post(`/api/user/messages/viewed/`, {
@@ -105,6 +117,7 @@ export const useUserStore = defineStore("user", {
         this.role = null;
         this.unreadMessages = 0;
         this.rooms = [];
+        this.createdAt = null;
       } catch (error) {
         console.error("Erreur lors du logout : ", error);
       }
