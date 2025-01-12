@@ -11,10 +11,6 @@ export const useRoomStore = defineStore("room", {
     lastMessage: {},
   }),
   actions: {
-    fetchUsername() {
-      this.username = localStorage.getItem("username");
-      // console.log(this.username);
-    },
     async fetchRoomList() {
       try {
         const response = await axios.get("/api/user/rooms");
@@ -28,7 +24,7 @@ export const useRoomStore = defineStore("room", {
       try {
         const response = await axios.get(`/api/chat/room/${roomId}`);
         this.actual = response.data;
-        // console.log(this.actual);
+        console.log(this.actual);
       } catch (error) {
         console.error("Erreur lors du fetchAllCourses : ", error);
       }
@@ -68,15 +64,8 @@ export const useRoomStore = defineStore("room", {
         console.error("Erreur lors du fetchAllCourses : ", error);
       }
     },
-    setLastMessage(message) {
-      // console.log(this.roomList);
-      // console.log(this.actual);
-      // const room = this.roomList.forEach((r) => {
-      //   console.log(r);
-      //   // if (r.room.id === message.roomId) {
-      //   //   r.lastMessage = message;
-      //   // }
-      // });
+    setActualRoom(room) {
+      this.actual = room;
     },
   },
   getters: {

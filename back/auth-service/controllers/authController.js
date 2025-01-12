@@ -6,6 +6,7 @@ const axios = require("../config/axios");
 const crypto = require("crypto");
 const speakeasy = require("speakeasy");
 const qrcode = require("qrcode");
+const multer = require("multer");
 
 const userExists = async (username, email) => {
   const user = await User.findOne({ $or: [{ username }, { email }] });
@@ -90,7 +91,7 @@ exports.logoutUser = async (req, res) => {
 };
 
 exports.registerUser = async (req, res) => {
-  const { username, email, password, rooms } = req.body;
+  let { username, email, password, rooms } = req.body;
   rooms ? rooms : (rooms = ["673382c2f30357627ee996e4"]);
 
   if (!validateInput(username, email)) {
@@ -104,7 +105,17 @@ exports.registerUser = async (req, res) => {
       return res.status(409).json({ message: "User already exists" });
     }
 
-    const newUser = new User({ username, email, password, rooms });
+    const avatar = req.files.avatar ? req.files.avatar[0].filename : "";
+    const banner = req.files.banner ? req.files.banner[0].filename : "";
+
+    const newUser = new User({
+      username,
+      email,
+      password,
+      rooms,
+      avatar,
+      banner,
+    });
     const savedUser = await newUser.save();
     res.status(201).json(savedUser);
   } catch (err) {
@@ -114,12 +125,29 @@ exports.registerUser = async (req, res) => {
 
 exports.getUserProfile = async (req, res) => {
   console.log(`[INFO] - getUserProfile - username : ${req.user.userId}`);
-  const user = req.user;
+  let user;
+  let isUserProfile = false;
+
+  if (req.user) {
+    user = req.user;
+    if (req.body.userId) {
+      console.log("Demande de requete POST");
+      isUserProfile = false;
+    } else {
+      console.log("Demande de requete GET");
+      req.body.userId = user.userId;
+      isUserProfile = true;
+    }
+  } else {
+    user = req.body;
+  }
 
   try {
-    const db_user = await User.findOne({ _id: user.userId }).select(
-      "-password -mfaSecret -__v"
-    );
+    const select = isUserProfile
+      ? "-password -mfaSecret -__v"
+      : "-password -mfaSecret -email -role -__v";
+
+    const db_user = await User.findOne({ _id: user.userId }).select(select);
     console.log(
       "[SUCCESS] - getUserProfile - User profile fetched successfully"
     );
@@ -127,6 +155,7 @@ exports.getUserProfile = async (req, res) => {
     const userRooms = db_user.rooms;
 
     console.log("[INFO] - getUserProfile - Fetching rooms informations");
+
     const rooms = await Promise.all(
       userRooms.map(async (roomId) => {
         if (!roomId) {
@@ -136,15 +165,26 @@ exports.getUserProfile = async (req, res) => {
         let roomInformations = [];
         try {
           roomInformations = await axios.chatService.get(`/room/${roomId}`);
+          if (!isUserProfile && roomInformations.data.private) {
+            return null; // Skip private rooms if not the user's profile
+          }
+          if (!isUserProfile) {
+            roomInformations.data.messages = undefined;
+            roomInformations.data.category = undefined;
+            roomInformations.data.private = undefined;
+          }
         } catch (error) {
           console.error("[ERROR] - getUserProfile - ", error.message);
         }
         return roomInformations.data;
       })
     );
+
+    const filteredRooms = rooms.filter((room) => room !== null);
+    console.log(filteredRooms);
     console.log("[SUCCESS] - getUserProfile - All rooms informations fetched");
 
-    for (const room of rooms) {
+    for (const room of filteredRooms) {
       if (!room) {
         continue;
       }
@@ -170,19 +210,20 @@ exports.getUserProfile = async (req, res) => {
       }
     }
 
-    console.log(rooms);
-
     res.status(200).json({
+      message: req.body.userId
+        ? "Ce profil est le profil d'un autre utilisateur"
+        : "Ce profil est votre profil",
       user: {
         ...db_user._doc,
-        rooms,
+        rooms: filteredRooms,
       },
     });
     console.log(
       "[SUCCESS] - getUserProfile - User profile sended successfully"
     );
   } catch (err) {
-    console.error(err.message);
+    console.log("[ERROR] - getUserProfile - ", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -246,7 +287,7 @@ exports.verifyMFA = async (req, res) => {
       secret: user.mfaSecret,
       encoding: "base32",
       token,
-      window: 1, // Tolérance d'une période
+      window: 1,
     });
 
     if (verified) {
@@ -414,3 +455,19 @@ exports.updateUserProfile = async (req, res) => {
   }
 }
 
+exports.getUserImages = async (req, res) => {
+  try {
+    console.log("[INFO] - getUserImages");
+    const user = await User.findById(req.user.userId).select("avatar banner");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const baseUrl = "http://localhost:3000"; // Change this to your API gateway URL
+    res.json({
+      avatar: user.avatar ? `${baseUrl}/uploads/${user.avatar}` : null,
+      banner: user.banner ? `${baseUrl}/uploads/${user.banner}` : null,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

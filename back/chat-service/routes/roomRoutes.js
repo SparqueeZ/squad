@@ -39,7 +39,6 @@ const upload = multer({
 router.get("/", roomController.getAllRooms);
 router.get("/:roomId", roomController.getRoomById);
 router.post("/", roomController.createRoom);
-// router.post("/private", roomController.createPrivateRoom);
 
 router.get("/internal/:roomId", roomController.getRoomInformations);
 router.post("/internal/addUser/:roomId", roomController.addUserToRoom);

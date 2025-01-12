@@ -182,7 +182,9 @@ exports.uploadFile = async (req, res) => {
     return res.status(400).json({ message: "Aucun fichier envoyé" });
   }
 
-  const { roomId, sender } = req.body;
+  console.log("[INFO] - uploadFile - req.file ");
+  let { roomId, sender } = req.body;
+  sender = JSON.parse(sender);
 
   const fileDetails = {
     text: `Fichier : ${req.file.originalname}`,
@@ -204,7 +206,10 @@ exports.uploadFile = async (req, res) => {
       ...savedMessage._doc,
     });
   } catch (err) {
-    console.error("Erreur lors de l'enregistrement du message :", err);
+    console.error(
+      "[ERROR] - uploadFile - Erreur lors de l'enregistrement du message :",
+      err
+    );
     res.status(500).json({ message: "Erreur serveur" });
   }
 };

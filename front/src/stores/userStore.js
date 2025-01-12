@@ -83,7 +83,26 @@ export const useUserStore = defineStore("user", {
         console.error("Erreur lors du changement d'email : ", error);
       }
     },
-
+    
+    async register(formData) {
+      try {
+        const response = await axios.post("/api/auth/register", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        if (response.status === 201) {
+          this.username = response.data.username;
+          this.email = response.data.email;
+          this.role = response.data.role;
+          this.rooms = response.data.rooms;
+          this._id = response.data._id;
+        }
+      } catch (error) {
+        console.error("Erreur lors de la création du compte : ", error);
+        throw error;
+      }
+    },
     async updateMessageViews(messageId) {
       try {
         await axios.post(`/api/user/messages/viewed/`, {

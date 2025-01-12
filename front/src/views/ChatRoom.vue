@@ -3,10 +3,19 @@
     <!-- <canvas id="canvas"></canvas> -->
     <div class="message-header">
       <div class="chat-infos">
-        <h1 class="chat-title" v-if="room.actual.room">
-          Room {{ room.actual.room.title }}
-        </h1>
-        <p class="chat-description"></p>
+        <div class="room-infos">
+          <h1 class="chat-title" v-if="room.actual">
+            {{ room.actual.title }}
+          </h1>
+          <p class="chat-description">{{ room.actual.description }}</p>
+        </div>
+        <div class="room-users">
+          <div class="users">
+            <div v-for="user in room.actual.users" :key="user._id" class="user">
+              <p>{{ user.username }}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="messages" ref="messagesContainer">
@@ -218,6 +227,13 @@ const handleScroll = () => {
 };
 
 const createPrivateRoom = async (senderId) => {
+  if (!senderId) return;
+  if (user._id === senderId) {
+    console.warn(
+      "Vous essayez de vous envoyer un message. privé, cela n'est pas possible"
+    );
+    return;
+  }
   const response = await room.createPrivateRoom(
     "Conversation",
     "Conversation privée entre 2 utilsateurs.",
@@ -245,7 +261,10 @@ const uploadFile = async () => {
   const formData = new FormData();
   formData.append("file", file.value);
   formData.append("roomId", route.params.id);
-  formData.append("sender", user.username);
+  formData.append(
+    "sender",
+    JSON.stringify({ username: user.username, _id: user._id })
+  );
 
   // Appel a l'API pour sauvegarder le fichier
   try {
@@ -259,7 +278,9 @@ const uploadFile = async () => {
     socket.emit("fileUploaded", {
       response,
     });
-  } catch (error) {}
+  } catch (error) {
+    console.error("Error uploading file:", error);
+  }
 };
 
 const downloadFile = async (filePath, fileName) => {
@@ -282,7 +303,6 @@ const downloadFile = async (filePath, fileName) => {
 
 onMounted(() => {
   canvas.value = document.getElementById("canvas");
-  console.log(user.rooms);
   user.rooms.forEach((r) => {
     socket.emit("joinRoom", user.username, r._id);
   });
@@ -292,7 +312,6 @@ onMounted(() => {
     }
     console.log("Message reçu :", message);
     user.addMessageToRoom(message, message.roomId);
-    // user.updateLastMessageOfRoom(message, message.roomId);
     scrollToBottom();
   });
   socket.on("isTyping", (userData) => {
@@ -329,8 +348,9 @@ onMounted(() => {
   });
 
   if (route.params.id) {
-    room.fetchRoomById(route.params.id);
     chat.fetchChatListByRoomId(route.params.id);
+    const newRoom = user.rooms.find((r) => r._id === route.params.id);
+    room.setActualRoom(newRoom);
   }
 
   setTimeout(() => {
@@ -346,10 +366,12 @@ onUnmounted(() => {
 
 watch(
   () => route.params.id,
-  (newId) => {
+  async (newId) => {
     if (route.params.id) {
-      chat.fetchChatListByRoomId(newId);
-      room.fetchRoomById(newId);
+      await chat.fetchChatListByRoomId(newId);
+      const newRoom = user.rooms.find((r) => r._id === newId);
+      room.setActualRoom(newRoom);
+
       setTimeout(() => {
         scrollToBottom();
       }, 100);
@@ -374,19 +396,47 @@ watch(
     width: 100%;
     margin: 0;
   }
-
   border-top-right-radius: 1rem;
   border-bottom-right-radius: 1rem;
   .chat-infos {
     padding: 1rem;
     border-bottom: 1px solid #333;
-    .chat-title {
-      font-size: 1.5rem;
-      color: #fff;
+    display: flex;
+    .room-infos {
+      display: flex;
+      flex-direction: column;
+      .chat-title {
+        font-size: 1.5rem;
+        color: #fff;
+        margin: 0rem;
+      }
+      .chat-description {
+        font-size: 0.9rem;
+        color: #a9aeba;
+      }
     }
-    .chat-description {
-      font-size: 0.9rem;
-      color: #a9aeba;
+    .room-users {
+      display: flex;
+      p {
+        font-size: 0.9rem;
+        color: #a9aeba;
+        margin-bottom: 0.5rem;
+      }
+      .users {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        .user {
+          padding: 0.5rem;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background-color: #333;
+          color: #fff;
+          font-size: 0.8rem;
+        }
+      }
     }
   }
 
