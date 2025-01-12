@@ -229,6 +229,7 @@ exports.getUserProfile = async (req, res) => {
 };
 
 exports.setupMFA = async (req, res) => {
+  console.log("[INFO] Setting up MFA");
   try {
     const user = await User.findOne({ username: req.body.username });
     if (!user) {
@@ -249,7 +250,9 @@ exports.setupMFA = async (req, res) => {
     });
 
     user.mfaSecret = secret.base32;
+    user.mfaStatus = true;
     await user.save();
+    
 
     const qrCode = await qrcode.toDataURL(secret.otpauth_url);
 
@@ -302,8 +305,11 @@ exports.verifyMFA = async (req, res) => {
 };
 
 exports.resetMFA = async (req, res) => {
+  console.log("[INFO] Reseting MFA");
+  const { username } = req.body;
+  console.log(username);
   try {
-    const { username } = req.body;
+    
 
     const user = await User.findOne({ username });
     if (!user) {
@@ -313,8 +319,9 @@ exports.resetMFA = async (req, res) => {
     }
 
     user.mfaSecret = null;
+    user.mfaStatus = false;
     await user.save();
-
+    
     res.json({ success: true, message: "MFA reset successfully" });
   } catch (err) {
     console.error(err);

@@ -40,10 +40,16 @@
             <span class="label">Date d'inscription :</span>
             <span class="value">{{ user.createdAt }}</span>
           </div>
+
+          <div class="info-item">
+            <button :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`" @click="mfaController">MFA ?</button>
+          </div>
         </div>
   
         <div class="content-section">
-
+          <div id="qr-code-container" style="text-align: center; margin-top: 20px;">
+            <!-- Le QR Code sera inséré ici -->
+          </div>
         </div>
       </div>
     </div>
@@ -56,6 +62,7 @@
 
   const user = useUserStore();
   const email = ref(user.email);
+  const username = user.username;
 
 
   const updateEmail = async () => {
@@ -66,7 +73,38 @@
     }
   }
 
+  const mfaController = async () => {
 
+    console.log(username);
+    const qrCodeContainer = document.getElementById('qr-code-container');
+    qrCodeContainer.innerHTML = "";
+    const qrcode = await user.updateMfaStatus(username);
+    if (qrcode != null) {
+      displayQRCode(qrcode);
+    }
+  }
+
+
+  async function displayQRCode(qrCodeImage) {
+    const qrCodeContainer = document.getElementById('qr-code-container');
+    console.log("display is here");
+      try {
+        if (qrCodeImage) {
+          // Création d'une balise <img> pour afficher le QR code
+          const img = document.createElement('img');
+          img.src = qrCodeImage; // Attribue la source du QR code
+          img.alt = "QR Code MFA";
+          img.style.width = "200px"; // Exemple de taille
+          img.style.height = "200px";
+
+          qrCodeContainer.appendChild(img);
+        }
+      } catch (error) {
+        console.error("Erreur : ", error);
+        qrCodeContainer.innerText = "Impossible d'afficher le QR Code.";
+      }
+    
+  }
 
   </script>
   
@@ -162,6 +200,38 @@
           display: flex;
           justify-content: space-between;
           margin-bottom: 0.5rem;
+          
+          .mfa-true {
+            background-color: #126318; /* Couleur légèrement plus foncée que le fond */
+            border: none;
+            color: #fff;  
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+
+            &:hover {
+              background-color: #2e333d; /* Couleur encore plus foncée au survol */
+            }
+          }
+
+          .mfa-false {
+            background-color: #85160e; /* Couleur légèrement plus foncée que le fond */
+            border: none;
+            color: #fff;  
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+
+            &:hover {
+              background-color: #2e333d; /* Couleur encore plus foncée au survol */
+            }
+          }
+          
+
           .container-input {
             width: 60%;
             display: flex;
@@ -182,12 +252,17 @@
             }
             
             .input-field {
-              background-color: #2e333d;
-              color: white;
-              width: 100%;
-              text-align: right;
-              margin-right: 10px;
-              }
+            background-color: #2e333d;
+            color: white;
+            width: 100%;
+            text-align: right;
+            margin-right: 10px;
+            border: none;
+            font-size: 1rem;
+            &:focus {
+              outline: none;
+            }
+          }
           }
           
   
@@ -199,6 +274,10 @@
           .value {
             color: #fff;
           }
+
+          
+
+
         }
   
         .activity-list {
