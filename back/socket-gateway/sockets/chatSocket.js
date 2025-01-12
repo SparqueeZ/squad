@@ -18,8 +18,7 @@ module.exports = (io) => {
         //const savedMessage = await newMessage.save();
         console.log("[ALERT] - Enregistrement en BDD");
 
-        if (data.type === "file") {
-        }
+        console.log(data);
 
         // Faire une requete API pour enregistrer le message
         let response;
@@ -31,10 +30,10 @@ module.exports = (io) => {
           // Émettre uniquement les données nécessaires
           io.to(data.message.roomId).emit("receiveMessage", response.data);
         } catch (err) {
-          console.error("Error saving message:", err);
+          // console.error("Error saving message:", err);
         }
       } catch (err) {
-        console.error("Error saving message:", err);
+        // console.error("Error saving message:", err);
       }
     });
 

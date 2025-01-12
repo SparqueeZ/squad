@@ -11,16 +11,20 @@
     </div>
     <div class="messages" ref="messagesContainer">
       <div
-        v-for="message in chat.chatList"
+        v-for="message in user.rooms.find((r) => r._id === route.params.id)
+          .messages"
         :key="message._id"
         :id="message._id"
         class="message"
         :class="user.username === message.sender ? 'sender' : ''"
       >
-        <div class="message-sender-img" @click="console.log('Open DM')"></div>
+        <div
+          class="message-sender-img"
+          @click="createPrivateRoom(message.sender._id)"
+        ></div>
         <div class="message-bubble">
           <div class="message-sender">
-            <p>{{ message.sender }}</p>
+            <p>{{ message.sender.username }}</p>
           </div>
           <p class="message-content">{{ message.text }}</p>
           <a
@@ -80,11 +84,13 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { useRouter } from "vue-router";
 import { io } from "socket.io-client";
 import Icon from "@/components/lib/Icon.vue";
 import { useRoute } from "vue-router";
 import { triggerConfetti } from "@/assets/lib/Confetti";
 import axios from "../assets/axios";
+const router = useRouter();
 
 const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
 const socket = io(APISOCKETURL);
@@ -123,11 +129,12 @@ const sendMessage = () => {
   ) {
     const message = {
       text: newMessage.value,
-      sender: user.username,
+      sender: { username: user.username, _id: user._id },
       timestamp: getActualDateTime(),
       roomId: route.params.id,
       viewedBy: ["Baptiste"],
     };
+    console.log("Message envoyé :", message);
     const data = {
       room: route.params.id,
       message: message,
@@ -210,6 +217,19 @@ const handleScroll = () => {
   // });
 };
 
+const createPrivateRoom = async (senderId) => {
+  const response = await room.createPrivateRoom(
+    "Conversation",
+    "Conversation privée entre 2 utilsateurs.",
+    "discussion",
+    [senderId]
+  );
+  if (response) {
+    console.log("Room created :", response);
+    router.push(`/${response}`);
+  }
+};
+
 const handleFileDrop = (event) => {
   event.preventDefault();
   const droppedFile = event.dataTransfer.files[0];
@@ -271,8 +291,8 @@ onMounted(() => {
       triggerConfetti(canvas.value, 5000);
     }
     console.log("Message reçu :", message);
-    chat.chatList.push(message);
-    user.updateLastMessageOfRoom(message, message.roomId);
+    user.addMessageToRoom(message, message.roomId);
+    // user.updateLastMessageOfRoom(message, message.roomId);
     scrollToBottom();
   });
   socket.on("isTyping", (userData) => {

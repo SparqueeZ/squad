@@ -48,6 +48,26 @@ export const useRoomStore = defineStore("room", {
         console.error("Erreur lors du fetchAllCourses : ", error);
       }
     },
+    async createPrivateRoom(title, description, category, users) {
+      try {
+        const response = await axios.post(`/api/chat/room/private`, {
+          title,
+          description,
+          category,
+          private: true,
+          users,
+        });
+        if (response.status === 200) {
+          console.log(response.data);
+          if (response.data.message === "Private room already exists") {
+            console.log("Room already exists");
+            return response.data.existingRoom._id;
+          }
+        }
+      } catch (error) {
+        console.error("Erreur lors du fetchAllCourses : ", error);
+      }
+    },
     setLastMessage(message) {
       // console.log(this.roomList);
       // console.log(this.actual);

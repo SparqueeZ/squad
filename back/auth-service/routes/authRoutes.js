@@ -21,6 +21,7 @@ router.get("/rooms", authenticateToken, authController.getUserRooms);
 // );
 
 router.post("/internal/user/data", authController.authenticateToken);
+router.put("/internal/rooms/:userId", authController.updateUserRooms);
 
 // TODO : Changer la route et en créer une pour pouvoir récupérer les données de l'utilisateur
 router.post(

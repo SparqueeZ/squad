@@ -1,5 +1,9 @@
 <script setup>
-import TheWelcome from '../components/TheWelcome.vue'
+import { useUserStore } from "@/stores/userStore";
+import TheWelcome from "../components/TheWelcome.vue";
+const user = useUserStore();
+
+console.log(user.username);
 </script>
 
 <template>

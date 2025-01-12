@@ -16,7 +16,7 @@
           <div class="message-img"></div>
           <div class="message-body">
             <div class="message-top">
-              <p class="message-sender">{{ message.sender }}</p>
+              <p class="message-sender">{{ message.sender.username }}</p>
               <div class="message-status">
                 <Icon v-if="message.seen" name="tickdouble" />
                 <p class="message-sended-timing">2m</p>
@@ -58,7 +58,9 @@
                 <p class="message-content">
                   <strong>{{
                     r.messages.length > 0
-                      ? `${r.messages[r.messages.length - 1].sender} : `
+                      ? `${
+                          r.messages[r.messages.length - 1].sender.username
+                        } : `
                       : "Aucun message envoyé."
                   }}</strong
                   >{{
@@ -94,12 +96,12 @@ const user = useUserStore();
 const room = useRoomStore();
 const messages = ref([]);
 
-watchEffect(() => {
-  room.roomList.lastMessage,
-    (newLastMessage) => {
-      console.log("There is a new last message", newLastMessage);
-    };
-});
+// watchEffect(() => {
+//   room.roomList.lastMessage,
+//     (newLastMessage) => {
+//       console.log("There is a new last message", newLastMessage);
+//     };
+// });
 
 const getRelativeTime = (timestamp) => {
   const now = Date.now();

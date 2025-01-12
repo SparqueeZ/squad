@@ -14,6 +14,7 @@ export const useUserStore = defineStore("user", {
     unreadMessages: 0,
     rooms: [],
     csrfToken: "",
+    _id: "",
   }),
   actions: {
     async fetchProfile() {
@@ -31,6 +32,7 @@ export const useUserStore = defineStore("user", {
         this.role = response.data.user.role;
         this.unreadMessages = [];
         this.rooms = response.data.user.rooms;
+        this._id = response.data.user._id;
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
         router.push("/");
@@ -52,12 +54,13 @@ export const useUserStore = defineStore("user", {
               "x-csrf-token": csrfToken,
             },
           });
-          console.log(profile.data.user.rooms[0]);
           this.username = profile.data.user.username;
           this.email = profile.data.user.email;
           this.role = profile.data.user.role;
           this.unreadMessages = [];
           this.rooms = profile.data.user.rooms;
+          // this.csrfToken = csrfToken;
+          this._id = profile.data.user._id;
 
           return true;
         } else {
@@ -84,6 +87,13 @@ export const useUserStore = defineStore("user", {
         if (room._id === roomId) {
           room.messages.unshift(message);
           console.warn(room.messages.at(-1));
+        }
+      });
+    },
+    addMessageToRoom(message, roomId) {
+      this.rooms.forEach((room) => {
+        if (room._id === roomId) {
+          room.messages.push(message);
         }
       });
     },

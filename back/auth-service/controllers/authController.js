@@ -126,6 +126,7 @@ exports.getUserProfile = async (req, res) => {
     // Récupérer les informations des rooms
     const userRooms = db_user.rooms;
 
+    console.log("[INFO] - getUserProfile - Fetching rooms informations");
     const rooms = await Promise.all(
       userRooms.map(async (roomId) => {
         if (!roomId) {
@@ -136,18 +137,40 @@ exports.getUserProfile = async (req, res) => {
         try {
           roomInformations = await axios.chatService.get(`/room/${roomId}`);
         } catch (error) {
-          console.error("[ERROR] - getUserProfile - ", error);
+          console.error("[ERROR] - getUserProfile - ", error.message);
         }
         return roomInformations.data;
       })
     );
+    console.log("[SUCCESS] - getUserProfile - All rooms informations fetched");
 
     for (const room of rooms) {
+      if (!room) {
+        continue;
+      }
       for (let i = 0; i < room.users.length; i++) {
         const user = await User.findById(room.users[i]).select("username");
         room.users[i] = user;
       }
+      if (room.private) {
+        // Vérifie si il y a uniquement 2 utilisateurs dans la room
+        if (room.users.length !== 2) {
+          console.error(
+            `[ERROR] - getUserProfile - Private room ${room._id} has more than 2 users`
+          );
+          return res.status(400).json({
+            error: `Private room ${room._id} has more than 2 users`,
+          });
+        }
+        // Vérifie l'index de l'utilisateur qui n'a pas le nom de l'utilisateur db_user, et le mets en nom de room
+        const userIndex = room.users.findIndex(
+          (user) => user.username !== db_user.username
+        );
+        room.title = room.users[userIndex].username;
+      }
     }
+
+    console.log(rooms);
 
     res.status(200).json({
       user: {
@@ -155,6 +178,9 @@ exports.getUserProfile = async (req, res) => {
         rooms,
       },
     });
+    console.log(
+      "[SUCCESS] - getUserProfile - User profile sended successfully"
+    );
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: err.message });
@@ -327,19 +353,6 @@ exports.updateMessageViews = async (req, res) => {
   }
 };
 
-exports.getUserData = async (req, res) => {
-  console.log("[INFO] - getUserData");
-  const user = req.user;
-  try {
-    const userData = await User.findById(user._id).select(
-      "-password -mfaSecret -__v"
-    );
-    res.status(200).json(userData);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 exports.authenticateToken = (req, res) => {
   const token = req.body.token;
   console.log("[INFO] - authenticateToken ");
@@ -350,10 +363,31 @@ exports.authenticateToken = (req, res) => {
   jwt.verify(token, "jwtsecretdelamortquitue", (err, user) => {
     if (err) {
       console.error("[ERROR] - authenticateToken - ", err);
-      return res.status(403).json({ message: "Invalid token" });
+      return res.status(403).json({ apiMessage: "Invalid token" });
     }
     req.user = user;
     console.log("[SUCCESS] - authenticateToken - Token sended successfully");
     res.status(200).json({ user: user });
   });
+};
+
+exports.updateUserRooms = async (req, res) => {
+  console.log(
+    `[INFO] Updating user ${req.params.userId} rooms with room ${req.body.roomId}`
+  );
+  const userId = req.params.userId;
+  if (req.body.roomId) {
+    try {
+      const user = await User.findById(userId);
+      user.rooms.push(req.body.roomId);
+      const savedUser = await user.save();
+      res.json(savedUser);
+    } catch (err) {
+      console.error(err.message);
+      res.status(400).json({ error: err.message });
+    }
+  } else {
+    console.error("[ERROR] Missing room ID");
+    res.status(400).json({ error: "Missing room ID" });
+  }
 };
