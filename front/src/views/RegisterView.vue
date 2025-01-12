@@ -11,10 +11,34 @@
         class="input-field"
       />
       <input
+        v-model="email"
+        type="email"
+        placeholder="Email"
+        required
+        class="input-field"
+      />
+      <input
+        v-model="biography"
+        type="text"
+        placeholder="Biographie"
+        required
+        class="input-field"
+      />
+      <input
         v-model="password"
         type="password"
         placeholder="Mot de passe"
         required
+        class="input-field"
+      />
+      <input
+        type="file"
+        @change="onFileChange($event, 'avatar')"
+        class="input-field"
+      />
+      <input
+        type="file"
+        @change="onFileChange($event, 'banner')"
         class="input-field"
       />
       <div class="button-group">
@@ -36,14 +60,43 @@ const socket = io(APIURL);
 import { useUserStore } from "@/stores/userStore";
 const user = useUserStore();
 
-const username = ref("");
-const password = ref("");
+const username = ref("Baptisto");
+const email = ref("bapt@gmail.com");
+const biography = ref("b");
+const password = ref("12345");
+const avatar = ref(null);
+const banner = ref(null);
 const router = useRouter();
 
-const register = () => {
+const onFileChange = (event, type) => {
+  const file = event.target.files[0];
+  if (type === "avatar") {
+    avatar.value = file;
+  } else if (type === "banner") {
+    banner.value = file;
+  }
+};
+
+const register = async () => {
   if (username.value && password.value) {
-    console.log("Création du compte...");
-    router.push("/chat");
+    const formData = new FormData();
+    formData.append("username", username.value);
+    formData.append("email", email.value);
+    formData.append("biography", biography.value);
+    formData.append("password", password.value);
+    if (avatar.value) {
+      formData.append("avatar", avatar.value);
+    }
+    if (banner.value) {
+      formData.append("banner", banner.value);
+    }
+
+    try {
+      await user.register(formData);
+      router.push("/chat");
+    } catch (error) {
+      console.error("Erreur lors de la création du compte : ", error);
+    }
   }
 };
 
