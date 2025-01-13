@@ -52,7 +52,7 @@ exports.loginUser = async (req, res) => {
             message: "MFA is not set up for this user",
           });
         }
-    
+
         // Vérifier le code TOTP
         const verified = speakeasy.totp.verify({
           secret: user.mfaSecret,
@@ -60,16 +60,20 @@ exports.loginUser = async (req, res) => {
           token: mfa,
           window: 1,
         });
-    
+
         if (verified) {
           console.log("MFA verified successfully");
         } else {
           console.log("Invalid MFA token");
-          return res.status(400).json({ success: false, message: "Invalid MFA token" });
+          return res
+            .status(400)
+            .json({ success: false, message: "Invalid MFA token" });
         }
       } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, message: "Error verifying MFA" });
+        res
+          .status(500)
+          .json({ success: false, message: "Error verifying MFA" });
       }
     }
 
@@ -174,12 +178,14 @@ exports.getUserProfile = async (req, res) => {
   if (req.user) {
     user = req.user;
     if (req.body.userId) {
-      console.log("Demande de requete POST");
+      console.log("Demande de requete POST pour l'user :", req.body.userId);
       isUserProfile = false;
+      user = req.body;
     } else {
       console.log("Demande de requete GET");
       req.body.userId = user.userId;
       isUserProfile = true;
+      user = req.user;
     }
   } else {
     user = req.body;
@@ -200,16 +206,18 @@ exports.getUserProfile = async (req, res) => {
     console.log("[INFO] - getUserProfile - Fetching rooms informations");
 
     const rooms = await Promise.all(
-      userRooms.map(async (roomId) => {
-        if (!roomId) {
+      userRooms.map(async (room) => {
+        if (!room.roomId) {
           console.error("[ERROR] - getUserProfile - Room ID is undefined");
           return;
         }
         let roomInformations = [];
         try {
-          roomInformations = await axios.chatService.get(`/room/${roomId}`);
+          roomInformations = await axios.chatService.get(
+            `/room/${room.roomId}`
+          );
           if (!isUserProfile && roomInformations.data.private) {
-            return null; // Skip private rooms if not the user's profile
+            return null;
           }
           if (!isUserProfile) {
             roomInformations.data.messages = undefined;
@@ -219,12 +227,11 @@ exports.getUserProfile = async (req, res) => {
         } catch (error) {
           console.error("[ERROR] - getUserProfile - ", error.message);
         }
-        return roomInformations.data;
+        return { ...roomInformations.data, status: room.status };
       })
     );
 
     const filteredRooms = rooms.filter((room) => room !== null);
-    console.log(filteredRooms);
     console.log("[SUCCESS] - getUserProfile - All rooms informations fetched");
 
     for (const room of filteredRooms) {
@@ -232,21 +239,12 @@ exports.getUserProfile = async (req, res) => {
         continue;
       }
       for (let i = 0; i < room.users.length; i++) {
-        const user = await User.findById(room.users[i]).select(
+        const user = await User.findById(room.users[i].userId).select(
           "username avatar"
         );
-        room.users[i] = user;
+        room.users[i] = { ...user._doc, status: room.users[i].status };
       }
       if (room.private) {
-        // Vérifie si il y a uniquement 2 utilisateurs dans la room
-        if (room.users.length !== 2) {
-          console.error(
-            `[ERROR] - getUserProfile - Private room ${room._id} has more than 2 users`
-          );
-          return res.status(400).json({
-            error: `Private room ${room._id} has more than 2 users`,
-          });
-        }
         // Vérifie l'index de l'utilisateur qui n'a pas le nom de l'utilisateur db_user, et le mets en nom de room
         const userIndex = room.users.findIndex(
           (user) => user.username !== db_user.username
@@ -255,12 +253,23 @@ exports.getUserProfile = async (req, res) => {
       }
     }
 
+    // Get user friends informations
+    const friends = await Promise.all(
+      db_user.friends.map(async (friend) => {
+        const friendData = await User.findById(friend.friendId).select(
+          "username bio avatar"
+        );
+        return { ...friendData._doc, status: friend.status };
+      })
+    );
+
     res.status(200).json({
-      message: req.body.userId
-        ? "Ce profil est le profil d'un autre utilisateur"
-        : "Ce profil est votre profil",
+      message: isUserProfile
+        ? "Ce profil est votre profil"
+        : "Ce profil est le profil d'un autre utilisateur",
       user: {
         ...db_user._doc,
+        friends,
         rooms: filteredRooms,
       },
     });
@@ -297,7 +306,6 @@ exports.setupMFA = async (req, res) => {
     user.mfaSecret = secret.base32;
     user.mfaStatus = true;
     await user.save();
-    
 
     const qrCode = await qrcode.toDataURL(secret.otpauth_url);
 
@@ -318,8 +326,6 @@ exports.resetMFA = async (req, res) => {
   const { username } = req.body;
   console.log(username);
   try {
-    
-
     const user = await User.findOne({ username });
     if (!user) {
       return res
@@ -370,23 +376,31 @@ exports.getUserRooms = async (req, res) => {
 };
 
 exports.updateUserRooms = async (req, res) => {
-  console.log(
-    `[INFO] Updating user ${req.params.userId} rooms with room ${req.body.roomId}`
-  );
-  const userId = req.params.userId;
-  if (req.body.roomId) {
-    try {
-      const user = await User.findById(userId);
-      user.rooms.push(req.body.roomId);
-      const savedUser = await user.save();
-      res.json(savedUser);
-    } catch (err) {
-      console.error(err.message);
-      res.status(400).json({ error: err.message });
+  const { userId } = req.params;
+  const { roomId, status } = req.body;
+
+  try {
+    // Vérifier si l'utilisateur existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  } else {
-    console.error("[ERROR] Missing room ID");
-    res.status(400).json({ error: "Missing room ID" });
+
+    // Vérifier si la room n'est pas déjà dans les rooms de l'utilisateur
+    if (user.rooms.some((room) => room.roomId === roomId)) {
+      return res.status(400).json({ message: "Room already in user's rooms" });
+    }
+
+    // Ajouter la room dans la liste des rooms de l'utilisateur avec le statut spécifié
+    user.rooms.push({ roomId, status });
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: "Room added to user's rooms successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -426,27 +440,6 @@ exports.authenticateToken = (req, res) => {
     console.log("[SUCCESS] - authenticateToken - Token sended successfully");
     res.status(200).json({ user: user });
   });
-};
-
-exports.updateUserRooms = async (req, res) => {
-  console.log(
-    `[INFO] Updating user ${req.params.userId} rooms with room ${req.body.roomId}`
-  );
-  const userId = req.params.userId;
-  if (req.body.roomId) {
-    try {
-      const user = await User.findById(userId);
-      user.rooms.push(req.body.roomId);
-      const savedUser = await user.save();
-      res.json(savedUser);
-    } catch (err) {
-      console.error(err.message);
-      res.status(400).json({ error: err.message });
-    }
-  } else {
-    console.error("[ERROR] Missing room ID");
-    res.status(400).json({ error: "Missing room ID" });
-  }
 };
 
 exports.updateUserProfile = async (req, res) => {
@@ -494,7 +487,7 @@ exports.getUserImages = async (req, res) => {
       user = req.body;
     }
 
-    console.log(user.userId);
+    console.log(user.userId.userId);
 
     const db_user = await User.findById({ _id: user.userId }).select(
       "avatar banner"
@@ -525,4 +518,244 @@ exports.getFile = (req, res) => {
     }
     res.sendFile(filePath);
   });
+};
+
+exports.getUserFriends = async (req, res) => {
+  console.log("[INFO] - getUserFriends");
+  const userId = req.user.userId;
+
+  try {
+    const user = await User.findById(userId).populate("friends");
+    res.json(user.friends);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.addUserFriend = async (req, res) => {
+  const userId = req.user.userId;
+  const { friendId } = req.body;
+
+  if (userId === friendId)
+    return res
+      .status(403)
+      .json({ message: "You can't add yourself as a friend" });
+
+  try {
+    // Find the user and the friend
+    const user = await User.findById(userId);
+    const friend = await User.findById(friendId);
+
+    if (!user || !friend) {
+      return res.status(404).json({ message: "User or friend not found" });
+    }
+
+    if (
+      user.friends.find((friend) => friend.friendId.toString() === friendId)
+    ) {
+      const userFriend = user.friends.find(
+        (friend) => friend.friendId.toString() === friendId
+      );
+      console.log("EURH", userFriend);
+      if (userFriend.status === "pending") {
+        return res.status(400).json({ message: "Friend request already sent" });
+      }
+      return res.status(400).json({ message: "Friend already added" });
+    }
+
+    // Add the friend to the user's friends list
+    user.friends.push({
+      friendId: friendId,
+      status: "pending",
+      requestBy: user._id,
+    });
+    await user.save();
+
+    friend.friends.push({
+      friendId: userId,
+      status: "pending",
+      requestBy: user._id,
+    });
+    await friend.save();
+
+    res.status(200).json({ message: "Friend request sended successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.acceptUserFriend = async (req, res) => {
+  const userId = req.user.userId;
+  const { friendId } = req.body;
+  console.log("[INFO] - acceptUserFriend - userId : ", userId);
+
+  try {
+    const user = await User.findById(userId);
+    const friend = await User.findById(friendId);
+    if (!user || !friend) {
+      console.log("[ERROR] - acceptUserFriend - User or friend not found");
+      return res.status(404).json({ message: "User or friend not found" });
+    }
+
+    user.friends.forEach((friend) => {
+      if (friend.requestBy.toString() === userId) {
+        console.log("Impossible");
+        return res
+          .status(400)
+          .json({ message: "You can't accept your own request" });
+      }
+      if (friend.friendId.toString() === friendId) {
+        console.log("Friend founded");
+        friend.status = "accepted";
+      }
+    });
+
+    user.friends.forEach((friend) => {
+      if (friend.friendId.toString() === friendId) {
+        console.log("Friend founded in user friends");
+        friend.status = "accepted";
+      }
+    });
+    await user.save();
+
+    friend.friends.forEach((friend) => {
+      console.log(friend);
+      if (friend.friendId.toString() === userId) {
+        friend.status = "accepted";
+      } else {
+        console.log("Friend not founded in friend friends");
+      }
+    });
+
+    await friend.save();
+    return res.status(200).json({ message: "Friend accepted" });
+  } catch (error) {
+    console.log("[ERROR] - acceptUserFriend - ", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.denyUserFriend = async (req, res) => {
+  const userId = req.user.userId;
+  const { friendId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    const friend = await User.findById(friendId);
+    if (!user || !friend) {
+      return res.status(404).json({ message: "User or friend not found" });
+    }
+
+    user.friends = user.friends.filter(
+      (friend) => friend.friendId.toString() !== friendId
+    );
+    await user.save();
+
+    friend.friends = friend.friends.filter(
+      (friend) => friend.friendId.toString() !== userId
+    );
+    await friend.save();
+
+    return res.status(200).json({ message: "Friend request rejected" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.deleteUserFriend = async (req, res) => {
+  const userId = req.user.userId;
+  const { friendId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    const friend = await User.findById(friendId);
+    if (!user || !friend) {
+      return res.status(404).json({ message: "User or friend not found" });
+    }
+
+    user.friends = user.friends.filter(
+      (friend) => friend.friendId.toString() !== friendId
+    );
+    await user.save();
+
+    friend.friends = friend.friends.filter(
+      (friend) => friend.friendId.toString() !== userId
+    );
+    await friend.save();
+
+    return res.status(200).json({ message: "Friend deleted" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.sendRoomInvitation = async (req, res) => {};
+
+exports.handleRoomInvitation = async (req, res) => {
+  const { roomId, userId, roomTitle } = req.body;
+
+  try {
+    // Vérifier si l'utilisateur existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Vérifier si l'utilisateur n'est pas déjà dans la room
+    if (user.rooms.some((room) => room.roomId.toString() === roomId)) {
+      return res.status(400).json({ message: "User already in the room" });
+    }
+
+    // Ajouter la room dans la liste des rooms de l'utilisateur avec le statut 'pending'
+    user.rooms.push({ roomId, status: "pending" });
+    await user.save();
+
+    // Créer une notification pour l'utilisateur
+    const notification = new Notification({
+      title: "Room Invitation",
+      message: `You have been invited to join the room: ${roomTitle}`,
+      userId: userId,
+    });
+    await notification.save();
+
+    res.status(200).json({ message: "Invitation handled successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.acceptRoomInvitation = async (req, res) => {
+  const { roomId, userId } = req.body;
+
+  try {
+    // Vérifier si l'utilisateur existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Mettre à jour le statut de la room de l'utilisateur à 'accepted'
+    const room = user.rooms.find((room) => room.roomId.toString() === roomId);
+    if (room) {
+      room.status = "accepted";
+      await user.save();
+
+      // Appeler le service chat pour mettre à jour le statut de l'utilisateur dans la room
+      await axios.chatService.put("/updateUserStatus", {
+        roomId,
+        userId,
+        status: "accepted",
+      });
+
+      res
+        .status(200)
+        .json({ message: "Room invitation accepted successfully" });
+    } else {
+      res.status(404).json({ message: "Room not found in user's rooms" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 };

@@ -1,5 +1,24 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const Notification = require("./notificationModel");
+
+const friendSchema = new mongoose.Schema({
+  friendId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "accepted", "rejected"],
+    default: "pending",
+  },
+  requestBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+});
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -33,10 +52,24 @@ const userSchema = new mongoose.Schema({
     required: true,
     default: "user",
   },
-  rooms: [
+  friends: [friendSchema],
+  notifications: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Room",
+      ref: "Notification",
+    },
+  ],
+  rooms: [
+    {
+      roomId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Room",
+      },
+      status: {
+        type: String,
+        enum: ["pending", "accepted"],
+        default: "pending",
+      },
     },
   ],
   mfaSecret: {
@@ -50,7 +83,7 @@ const userSchema = new mongoose.Schema({
   mfaStatus: {
     type: Boolean,
     default: false,
-  }
+  },
 });
 
 userSchema.pre("save", async function (next) {
