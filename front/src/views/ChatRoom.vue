@@ -192,15 +192,7 @@ const recordVoice = async () => {
 
      
           socket.emit("fileUploaded", {
-            type: "audio",
-            filePath: response.data.filePath,
-            fileName: response.data.fileName,
-            roomId: route.params.id,
-            sender: {
-              username: user.username,
-              _id: user._id,
-              avatar: user.avatar ? user.avatar : "",
-            },
+            response,
           });
         } catch (error) {
           console.error("Erreur lors de l'upload de l'audio :", error);
