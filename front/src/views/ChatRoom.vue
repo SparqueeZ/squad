@@ -49,16 +49,34 @@
             {{ message.filePath ? "" : message.text }}
           </p>
           <div v-if="message.filePath" class="message-content">
-            <a
-              v-if="message.filePath"
-              @click="downloadFile(message.filePath, message.fileName)"
-            >
-              <img
-                :src="`${APIURL}/api/chat${message.filePath}`"
-                alt=""
-                srcset=""
-              />
-            </a>
+
+            <div v-if="message.type===(`image/png` || `image/jpg` || `image/jpeg`)">
+              <a
+                v-if="message.filePath"
+                @click="downloadFile(message.filePath, message.fileName)"
+              >
+                <img
+                  :src="`${APIURL}api/chat${message.filePath}`"
+                  alt=""
+                  srcset=""
+                />
+              </a>
+            </div>
+
+            <div v-if="message.type===(`audio/webm`)" class="audio-message">
+              <div class="audio-player">
+                <video
+                  src="http://localhost:3000/api/chat/uploads/1736795587873-176611469.webm"
+                  controls
+                  width="350"
+                  height="50"
+                >
+                  Votre navigateur ne prend pas en charge la lecture des vidéos au format WebM.
+                </video>
+              </div>
+            </div>
+            
+            
           </div>
           <div class="message-infos">
             <p class="message-date">
@@ -159,6 +177,61 @@ const isRecording = ref(false);
 const audioBlob = ref(null);
 const mediaRecorder = ref(null);
 const audioChunks = ref([]);
+
+const isPlaying = ref(false);
+const duration = ref(0);
+const currentTime = ref(0);
+const progress = ref(0);
+const audioRef = ref(null);
+
+document.addEventListener("DOMContentLoaded", () => {
+  const audioPlayers = document.querySelectorAll(".audio-player");
+
+  audioPlayers.forEach((player) => {
+    const audio = player.querySelector("audio");
+    const playButton = player.querySelector(".play-button");
+    const progressBar = player.querySelector(".progress-bar .progress");
+    const currentTimeElem = player.querySelector(".time");
+    const durationElem = player.querySelector(".duration");
+
+    // Fonction pour formater le temps en mm:ss
+    const formatTime = (time) => {
+      const minutes = Math.floor(time / 60);
+      const seconds = Math.floor(time % 60);
+      return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    };
+
+    // Charger les métadonnées audio pour afficher la durée
+    audio.addEventListener("loadedmetadata", () => {
+      if (!isNaN(audio.duration)) {
+        durationElem.textContent = formatTime(audio.duration);
+      } else {
+        console.warn("La durée de l'audio n'est pas disponible.");
+        durationElem.textContent = "0:00";
+      }
+    });
+
+    // Mettre à jour la barre de progression et le temps courant
+    audio.addEventListener("timeupdate", () => {
+      const progress = (audio.currentTime / audio.duration) * 100;
+      progressBar.style.width = `${progress}%`;
+      currentTimeElem.textContent = formatTime(audio.currentTime);
+    });
+
+    // Gérer le bouton play/pause
+    playButton.addEventListener("click", () => {
+      if (audio.paused) {
+        audio.play().catch((error) => {
+          console.error("Erreur lors de la lecture de l'audio :", error);
+        });
+        playButton.textContent = "⏸"; // Icône pause
+      } else {
+        audio.pause();
+        playButton.textContent = "▶"; // Icône play
+      }
+    });
+  });
+});
 
 const openPopup = () => {
   popup.togglePopup();
@@ -642,6 +715,59 @@ watch(
             object-fit: cover;
             border-radius: 10px;
             cursor: pointer;
+          }
+          /* Styles pour les messages audio */
+          .audio-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 10px;
+          }
+
+          /* Le lecteur audio */
+          .audio-player {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+          }
+
+          /* Bouton Play/Pause */
+          .play-button {
+            width: 30px;
+            height: 30px;
+            background: #007bff;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          }
+
+          /* Barre de progression */
+          .progress-bar {
+            flex: 1;
+            height: 5px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            position: relative;
+            cursor: pointer;
+          }
+
+          .progress {
+            height: 100%;
+            background: #007bff;
+            border-radius: 5px;
+          }
+
+          /* Temps et durée */
+          .time, .duration {
+            font-size: 12px;
+            color: #555;
           }
         }
         .message-infos {

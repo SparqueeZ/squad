@@ -24,7 +24,7 @@ app.use(limiter);
 // Cela garantit que seules les requêtes provenant de cette origine sont acceptées.
 app.use(
   cors({
-    origin: "http://10.8.0.2", // Autoriser cette origine spécifique
+    origin: "http://localhost", // Autoriser cette origine spécifique
     credentials: true, // Permettre l'envoi des cookies et des headers d'autorisation
   })
 );

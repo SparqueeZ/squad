@@ -7,6 +7,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const dbConfig = require("./config/db");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 // Routes API REST
 app.use("/", chatRoutes);
 app.use("/room", roomRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const PORT = process.env.PORT || 3003;
 
