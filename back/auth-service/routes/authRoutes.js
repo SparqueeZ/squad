@@ -46,8 +46,8 @@ router.post(
   authController.registerUser
 );
 router.get("/profile", authenticateToken, authController.getUserProfile);
-router.put("/infosUpdate", authenticateToken, authController.updateUserProfile);
 router.post("/profile", authenticateToken, authController.getUserProfile);
+router.put("/infosUpdate", authenticateToken, authController.updateUserProfile);
 
 router.post("/mfa/setup", authController.setupMFA);
 router.post("/mfa/reset", authController.resetMFA);
@@ -72,5 +72,23 @@ router.post(
 
 router.get("/user/images", authenticateToken, authController.getUserImages);
 router.post("/user/images", authenticateToken, authController.getUserImages);
+
+router.get("/user/friends", authenticateToken, authController.getUserFriends);
+router.post("/user/friends", authenticateToken, authController.addUserFriend);
+router.post(
+  "/user/friends/accept",
+  authenticateToken,
+  authController.acceptUserFriend
+);
+router.post(
+  "/user/friends/deny",
+  authenticateToken,
+  authController.denyUserFriend
+);
+router.delete(
+  "/user/friends",
+  authenticateToken,
+  authController.deleteUserFriend
+);
 
 module.exports = router;
