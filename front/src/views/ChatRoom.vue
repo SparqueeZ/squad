@@ -19,6 +19,7 @@
               />
             </div>
           </div>
+          <button @click="openProfilePopup()">Invite a friend</button>
         </div>
       </div>
     </div>
@@ -32,7 +33,7 @@
       >
         <div
           class="message-sender-img"
-          @click="createPrivateRoom(message.sender._id)"
+          @click="openProfile(message.sender._id)"
         >
           <img
             :src="`${APIURL}/api/auth/uploads/${message.sender.avatar}`"
@@ -44,13 +45,21 @@
           <div class="message-sender">
             <p>{{ message.sender.username }}</p>
           </div>
-          <p class="message-content">{{ message.text }}</p>
-          <a
-            v-if="message.filePath"
-            @click="downloadFile(message.filePath, message.fileName)"
-          >
-            {{ message.fileName }}
-          </a>
+          <p class="message-content">
+            {{ message.filePath ? "" : message.text }}
+          </p>
+          <div v-if="message.filePath" class="message-content">
+            <a
+              v-if="message.filePath"
+              @click="downloadFile(message.filePath, message.fileName)"
+            >
+              <img
+                :src="`${APIURL}/api/chat${message.filePath}`"
+                alt=""
+                srcset=""
+              />
+            </a>
+          </div>
           <div class="message-infos">
             <p class="message-date">
               {{ getDateString(message.timestamp) }}
@@ -76,9 +85,14 @@
         <div class="dot-falling"></div>
       </div>
     </div>
+
+    <div v-if="file" class="file-upload-message">
+      <p>File ready to upload: {{ file.name }}</p>
+      <button @click="uploadFile">Upload</button>
+    </div>
     <div class="input-bar" @dragover.prevent @drop="handleFileDrop">
       <Icon name="attachment" />
-      <form @submit.prevent="sendMessage">
+      <form @submit.prevent="file ? uploadFile() : sendMessage()">
         <input
           v-model="newMessage"
           type="text"
@@ -93,10 +107,6 @@
       </form>
       <Icon name="microphone" />
     </div>
-    <div v-if="file" class="file-upload-message">
-      <p>File ready to upload: {{ file.name }}</p>
-      <button @click="uploadFile">Upload</button>
-    </div>
   </div>
 </template>
 
@@ -108,6 +118,7 @@ import Icon from "@/components/lib/Icon.vue";
 import { useRoute } from "vue-router";
 import { triggerConfetti } from "@/assets/lib/Confetti";
 import axios from "../assets/axios";
+import { usePopupStore } from "@/stores/popupStore";
 const router = useRouter();
 
 const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
@@ -117,18 +128,40 @@ const newMessage = ref("");
 import { useUserStore } from "@/stores/userStore";
 import { useChatStore } from "@/stores/chatStore";
 import { useRoomStore } from "@/stores/roomStore";
+
 const room = useRoomStore();
 const chat = useChatStore();
 const user = useUserStore();
 const route = useRoute();
-
-const usersAvatars = ref([]);
-
 const someoneIsTyping = ref([]);
+
+import ProfileView from "./ProfileView.vue";
+import invitePopup from "@/components/invitePopup.vue";
+// import Settings from "@/components/Settings.vue";
+
+// Store
+const popupStore = usePopupStore();
+
+// Méthodes pour ouvrir la popup avec différents contenus
+const openProfilePopup = () => {
+  popupStore.openPopup(invitePopup);
+};
+
+// const openSettingsPopup = () => {
+//   popupStore.openPopup(Settings);
+// };
 
 const messagesContainer = ref(null);
 const canvas = ref(null);
 const file = ref(null);
+
+const openPopup = () => {
+  popup.togglePopup();
+};
+
+const openProfile = (userId) => {
+  router.push(`/profile/${userId}`);
+};
 
 const handleIsTyping = () => {
   // if (newMessage.value) {
@@ -267,6 +300,7 @@ const handleFileDrop = (event) => {
   const droppedFile = event.dataTransfer.files[0];
   if (droppedFile) {
     file.value = droppedFile;
+    newMessage.value = "Fichier ";
     console.log("File dropped:", droppedFile.name);
   }
 };
@@ -282,18 +316,17 @@ const uploadFile = async () => {
     JSON.stringify({ username: user.username, _id: user._id })
   );
 
-  // Appel a l'API pour sauvegarder le fichier
   try {
     const response = await axios.post("/api/chat/room/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    console.log("!!!! Fichier uploadé :", response.data);
-
-    // Une fois cela fait, Appel au WS pour diffuser le fichier
     socket.emit("fileUploaded", {
       response,
     });
+
+    file.value = null;
+    newMessage.value = "";
   } catch (error) {
     console.error("Error uploading file:", error);
   }
@@ -321,14 +354,6 @@ onMounted(() => {
   canvas.value = document.getElementById("canvas");
   user.rooms.forEach((r) => {
     socket.emit("joinRoom", user.username, r._id);
-    // r.users.forEach((u) => {
-    //   if (!usersAvatars.value.includes(u._id)) {
-    //     usersAvatars.value.push({
-    //       _id: u._id,
-    //       avatar: u.avatar,
-    //     });
-    //   }
-    // });
   });
   socket.on("receiveMessage", (message) => {
     if (message.text.includes("Joyeux anniversaire")) {
@@ -377,11 +402,12 @@ onMounted(() => {
     room.fetchChatListByRoomId(route.params.id);
     const newRoom = user.rooms.find((r) => r._id === route.params.id);
     room.setActualRoom(newRoom);
+
+    setTimeout(() => {
+      scrollToBottom();
+    }, 500);
   }
 
-  setTimeout(() => {
-    scrollToBottom();
-  }, 100);
   messagesContainer.value.addEventListener("scroll", handleScroll);
 });
 
@@ -489,6 +515,7 @@ watch(
         .message-bubble {
           justify-content: end;
           text-align: end;
+          gap: 0.5rem;
         }
       }
       // border-bottom: 1px solid #ccc;
@@ -528,10 +555,17 @@ watch(
         .message-content {
           font-size: 0.9rem;
           color: #a9aeba;
+          overflow: hidden;
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+          }
         }
         .message-infos {
           color: #676769;
-          margin-top: 0.5rem;
           display: flex;
           flex-direction: row-reverse;
           gap: 0.2rem;

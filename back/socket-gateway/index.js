@@ -3,6 +3,7 @@ const axios = require("axios");
 const { Server } = require("socket.io");
 const chatSocket = require("./sockets/chatSocket");
 const http = require("http");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -18,6 +19,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3004;
 
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // Middleware pour injecter io dans req
 app.use((req, res, next) => {
   req.io = io; // Injecte l'instance de Socket.IO

@@ -10,7 +10,10 @@
 
     <div class="profile-header">
       <div class="profile-picture">
-        <img :src="user.avatarLink || defaultAvatar" alt="User Profile" />
+        <img
+          :src="`${APIURL}/api/auth/uploads/${user.avatar}` || defaultAvatar"
+          alt="User Profile"
+        />
       </div>
       <div class="profile-info">
         <h1 class="username">{{ user.username }}</h1>
@@ -22,30 +25,47 @@
       <div class="content-section">
         <h2 class="section-title">Informations personnelles</h2>
 
-        <div class="info-item">
+        <div v-if="isUserProfile" class="info-item">
           <span class="label">Email :</span>
           <div class="container-input">
+            <span class="value">{{ user.email }}</span>
             <input v-model="email" type="text" required class="input-field" />
-            <button class="edit-button" @click="updateEmail">Modifier</button>
+            <button
+              v-if="isUserProfile"
+              class="edit-button"
+              @click="updateEmail"
+            >
+              Modifier
+            </button>
           </div>
 
           <div class="info-item">
-            <button :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`" @click="mfaController">MFA ?</button>
+            <button
+              v-if="isUserProfile"
+              :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`"
+              @click="mfaController"
+            >
+              MFA ?
+            </button>
           </div>
         </div>
 
         <div class="info-item">
           <span class="label">Date d'inscription :</span>
-          <span class="value">{{ user.createdAt }}</span>
-  
-        <div class="content-section">
-          <div id="qr-code-container" style="text-align: center; margin-top: 20px;">
-            <!-- Le QR Code sera inséré ici -->
+          <span class="value">{{
+            isUserProfile ? user.createdAt : convertDate(user.createdAt)
+          }}</span>
+
+          <div class="content-section">
+            <div
+              id="qr-code-container"
+              style="text-align: center; margin-top: 20px"
+            ></div>
           </div>
         </div>
-      </div>
 
-      <div class="content-section"></div>
+        <div class="content-section"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -55,57 +75,70 @@ import { ref, onMounted } from "vue";
 import defaultAvatar from "../assets/img/default-avatar.jpg";
 import defaultBanner from "../assets/img/default-banner.jpg";
 import { useUserStore } from "@/stores/userStore";
+import { useRoute } from "vue-router";
+import dayjs from "dayjs";
+const route = useRoute();
+const APIURL = import.meta.env.VITE_API_URL;
 
-const user = useUserStore();
-const email = ref(user.email);
+const userStore = useUserStore();
+const user = ref({});
+const email = ref("");
+let isUserProfile = ref(false);
+
+const convertDate = (date) => {
+  return dayjs(date).format("DD/MM/YYYY");
+};
 
 const updateEmail = async () => {
   if (email.value) {
-    user.updateEmail(email.value);
+    userStore.updateEmail(email.value);
   } else {
     console.error("Champ d'entré vide");
-
   }
 };
 
 onMounted(async () => {
-  await user.fetchProfile();
+  if (route.params.id) {
+    const response = await userStore.fetchProfileById(route.params.id);
+    user.value = response.user;
+    isUserProfile.value = false;
+  } else {
+    await userStore.fetchProfile();
+    user.value = userStore;
+    isUserProfile = true;
+  }
 });
 
-
 const mfaController = async () => {
-
-  console.log(username);
-  const qrCodeContainer = document.getElementById('qr-code-container');
+  console.log(user.value.username);
+  const qrCodeContainer = document.getElementById("qr-code-container");
   qrCodeContainer.innerHTML = "";
-  const qrcode = await user.updateMfaStatus(username);
+  const qrcode = await userStore.updateMfaStatus(user.value.username);
   if (qrcode != null) {
     displayQRCode(qrcode);
   }
-}
+};
 
 async function displayQRCode(qrCodeImage) {
-    const qrCodeContainer = document.getElementById('qr-code-container');
-    console.log("display is here");
-      try {
-        if (qrCodeImage) {
-          // Création d'une balise <img> pour afficher le QR code
-          const img = document.createElement('img');
-          img.src = qrCodeImage; // Attribue la source du QR code
-          img.alt = "QR Code MFA";
-          img.style.width = "200px"; // Exemple de taille
-          img.style.height = "200px";
+  const qrCodeContainer = document.getElementById("qr-code-container");
+  console.log("display is here");
+  try {
+    if (qrCodeImage) {
+      // Création d'une balise <img> pour afficher le QR code
+      const img = document.createElement("img");
+      img.src = qrCodeImage; // Attribue la source du QR code
+      img.alt = "QR Code MFA";
+      img.style.width = "200px"; // Exemple de taille
+      img.style.height = "200px";
 
-          qrCodeContainer.appendChild(img);
-        }
-      } catch (error) {
-        console.error("Erreur : ", error);
-        qrCodeContainer.innerText = "Impossible d'afficher le QR Code.";
-      }
-    
+      qrCodeContainer.appendChild(img);
+    }
+  } catch (error) {
+    console.error("Erreur : ", error);
+    qrCodeContainer.innerText = "Impossible d'afficher le QR Code.";
   }
-
-  </script>
+}
+</script>
 
 <style scoped lang="scss">
 .profile-page {
@@ -193,6 +226,36 @@ async function displayQRCode(qrCodeImage) {
         display: flex;
         justify-content: space-between;
         margin-bottom: 0.5rem;
+
+        .mfa-true {
+          background-color: #126318; /* Couleur légèrement plus foncée que le fond */
+          border: none;
+          color: #fff;
+          font-size: 0.8rem;
+          padding: 0.3rem 0.6rem;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: #2e333d; /* Couleur encore plus foncée au survol */
+          }
+        }
+
+        .mfa-false {
+          background-color: #85160e; /* Couleur légèrement plus foncée que le fond */
+          border: none;
+          color: #fff;
+          font-size: 0.8rem;
+          padding: 0.3rem 0.6rem;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: #2e333d; /* Couleur encore plus foncée au survol */
+          }
+        }
         .container-input {
           width: 60%;
           display: flex;
@@ -244,93 +307,43 @@ async function displayQRCode(qrCodeImage) {
           border-bottom: 1px solid #333;
 
           .activity-text {
-          margin-bottom: 0.5rem;
-          
-          .mfa-true {
-            background-color: #126318; /* Couleur légèrement plus foncée que le fond */
-            border: none;
-            color: #fff;  
-            font-size: 0.8rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+            margin-bottom: 0.5rem;
 
-            &:hover {
-              background-color: #2e333d; /* Couleur encore plus foncée au survol */
-            }
-          }
+            .container-input {
+              width: 60%;
+              display: flex;
+              justify-content: right;
+              .edit-button {
+                background-color: #353d49; /* Couleur légèrement plus foncée que le fond */
+                border: none;
+                color: #fff;
+                font-size: 0.8rem;
+                padding: 0.3rem 0.6rem;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
 
-          .mfa-false {
-            background-color: #85160e; /* Couleur légèrement plus foncée que le fond */
-            border: none;
-            color: #fff;  
-            font-size: 0.8rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+                &:hover {
+                  background-color: #2e333d; /* Couleur encore plus foncée au survol */
+                }
+              }
 
-            &:hover {
-              background-color: #2e333d; /* Couleur encore plus foncée au survol */
-            }
-          }
-          
-
-          .container-input {
-            width: 60%;
-            display: flex;
-            justify-content: right;
-            .edit-button {
-              background-color: #353d49; /* Couleur légèrement plus foncée que le fond */
-              border: none;
-              color: #fff;
-              font-size: 0.8rem;
-              padding: 0.3rem 0.6rem;
-              border-radius: 5px;
-              cursor: pointer;
-              transition: background-color 0.2s ease;
-
-              &:hover {
-                background-color: #2e333d; /* Couleur encore plus foncée au survol */
+              .input-field {
+                background-color: #2e333d;
+                color: white;
+                width: 100%;
+                text-align: right;
+                margin-right: 10px;
+                border: none;
+                font-size: 1rem;
+                &:focus {
+                  outline: none;
+                }
               }
             }
-            
-            .input-field {
-            background-color: #2e333d;
-            color: white;
-            width: 100%;
-            text-align: right;
-            margin-right: 10px;
-            border: none;
-            font-size: 1rem;
-            &:focus {
-              outline: none;
-            }
-          }
-          }
-          
-  
-          .label {
-            color: #a9aeba;
-          }
-         
-        }
- 
-        .activity-list {
-          .activity-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #333;
-  
-            .activity-text {
+
+            .label {
               color: #a9aeba;
-            }
-  
-            .activity-date {
-              color: #676769;
-              font-size: 0.8rem;
             }
           }
         }

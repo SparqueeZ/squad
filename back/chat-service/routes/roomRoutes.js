@@ -50,4 +50,13 @@ router.post("/messages/viewed", roomController.updateMessageViews);
 
 router.post("/private", authenticateToken, roomController.createPrivateRoom);
 
+router.post("/invite", authenticateToken, roomController.sendRoomInvitation);
+router.put(
+  "/updateUserStatus",
+  authenticateToken,
+  roomController.updateRoomUserStatus
+);
+
+router.post("/addUser", authenticateToken, roomController.addUserToRoom);
+
 module.exports = router;
