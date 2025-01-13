@@ -17,6 +17,12 @@
         required
         class="input-field"
       />
+      <input
+        v-model="mfa"
+        type="text"
+        placeholder="Code MFA"
+        class="input-field"
+      />
       <div id="turnstile"></div>
       <div class="button-group">
         <button type="submit" class="btn-primary">Se connecter</button>
@@ -40,6 +46,7 @@ const security = useSecurityStore();
 
 const username = ref("Baptiste");
 const password = ref("12345");
+const mfa = ref("123465");
 const captchaToken = ref("");
 // const csrfToken = ref("");
 const router = useRouter();
@@ -64,7 +71,7 @@ const login = async () => {
     // if (data.success) {
     if (true) {
       // This line is for testing without captcha
-      user.login(username.value, password.value);
+      user.login(username.value, password.value, mfa.value);
       setTimeout(() => {
         console.log(user.username);
         if (user.username) {
