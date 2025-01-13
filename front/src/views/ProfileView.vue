@@ -30,22 +30,31 @@
           </div>
 
           <div class="info-item">
-            <button :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`" @click="mfaController">MFA ?</button>
+            <button
+              :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`"
+              @click="mfaController"
+            >
+              MFA ?
+            </button>
           </div>
         </div>
 
         <div class="info-item">
           <span class="label">Date d'inscription :</span>
           <span class="value">{{ user.createdAt }}</span>
-  
-        <div class="content-section">
-          <div id="qr-code-container" style="text-align: center; margin-top: 20px;">
-            <!-- Le QR Code sera inséré ici -->
+
+          <div class="content-section">
+            <div
+              id="qr-code-container"
+              style="text-align: center; margin-top: 20px"
+            >
+              <!-- Le QR Code sera inséré ici -->
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="content-section"></div>
+        <div class="content-section"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -64,7 +73,6 @@ const updateEmail = async () => {
     user.updateEmail(email.value);
   } else {
     console.error("Champ d'entré vide");
-
   }
 };
 
@@ -72,40 +80,36 @@ onMounted(async () => {
   await user.fetchProfile();
 });
 
-
 const mfaController = async () => {
-
   console.log(username);
-  const qrCodeContainer = document.getElementById('qr-code-container');
+  const qrCodeContainer = document.getElementById("qr-code-container");
   qrCodeContainer.innerHTML = "";
   const qrcode = await user.updateMfaStatus(username);
   if (qrcode != null) {
     displayQRCode(qrcode);
   }
-}
+};
 
 async function displayQRCode(qrCodeImage) {
-    const qrCodeContainer = document.getElementById('qr-code-container');
-    console.log("display is here");
-      try {
-        if (qrCodeImage) {
-          // Création d'une balise <img> pour afficher le QR code
-          const img = document.createElement('img');
-          img.src = qrCodeImage; // Attribue la source du QR code
-          img.alt = "QR Code MFA";
-          img.style.width = "200px"; // Exemple de taille
-          img.style.height = "200px";
+  const qrCodeContainer = document.getElementById("qr-code-container");
+  console.log("display is here");
+  try {
+    if (qrCodeImage) {
+      // Création d'une balise <img> pour afficher le QR code
+      const img = document.createElement("img");
+      img.src = qrCodeImage; // Attribue la source du QR code
+      img.alt = "QR Code MFA";
+      img.style.width = "200px"; // Exemple de taille
+      img.style.height = "200px";
 
-          qrCodeContainer.appendChild(img);
-        }
-      } catch (error) {
-        console.error("Erreur : ", error);
-        qrCodeContainer.innerText = "Impossible d'afficher le QR Code.";
-      }
-    
+      qrCodeContainer.appendChild(img);
+    }
+  } catch (error) {
+    console.error("Erreur : ", error);
+    qrCodeContainer.innerText = "Impossible d'afficher le QR Code.";
   }
-
-  </script>
+}
+</script>
 
 <style scoped lang="scss">
 .profile-page {
@@ -193,6 +197,36 @@ async function displayQRCode(qrCodeImage) {
         display: flex;
         justify-content: space-between;
         margin-bottom: 0.5rem;
+
+        .mfa-true {
+          background-color: #126318; /* Couleur légèrement plus foncée que le fond */
+          border: none;
+          color: #fff;
+          font-size: 0.8rem;
+          padding: 0.3rem 0.6rem;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: #2e333d; /* Couleur encore plus foncée au survol */
+          }
+        }
+
+        .mfa-false {
+          background-color: #85160e; /* Couleur légèrement plus foncée que le fond */
+          border: none;
+          color: #fff;
+          font-size: 0.8rem;
+          padding: 0.3rem 0.6rem;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: #2e333d; /* Couleur encore plus foncée au survol */
+          }
+        }
         .container-input {
           width: 60%;
           display: flex;
@@ -244,93 +278,43 @@ async function displayQRCode(qrCodeImage) {
           border-bottom: 1px solid #333;
 
           .activity-text {
-          margin-bottom: 0.5rem;
-          
-          .mfa-true {
-            background-color: #126318; /* Couleur légèrement plus foncée que le fond */
-            border: none;
-            color: #fff;  
-            font-size: 0.8rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+            margin-bottom: 0.5rem;
 
-            &:hover {
-              background-color: #2e333d; /* Couleur encore plus foncée au survol */
-            }
-          }
+            .container-input {
+              width: 60%;
+              display: flex;
+              justify-content: right;
+              .edit-button {
+                background-color: #353d49; /* Couleur légèrement plus foncée que le fond */
+                border: none;
+                color: #fff;
+                font-size: 0.8rem;
+                padding: 0.3rem 0.6rem;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
 
-          .mfa-false {
-            background-color: #85160e; /* Couleur légèrement plus foncée que le fond */
-            border: none;
-            color: #fff;  
-            font-size: 0.8rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+                &:hover {
+                  background-color: #2e333d; /* Couleur encore plus foncée au survol */
+                }
+              }
 
-            &:hover {
-              background-color: #2e333d; /* Couleur encore plus foncée au survol */
-            }
-          }
-          
-
-          .container-input {
-            width: 60%;
-            display: flex;
-            justify-content: right;
-            .edit-button {
-              background-color: #353d49; /* Couleur légèrement plus foncée que le fond */
-              border: none;
-              color: #fff;
-              font-size: 0.8rem;
-              padding: 0.3rem 0.6rem;
-              border-radius: 5px;
-              cursor: pointer;
-              transition: background-color 0.2s ease;
-
-              &:hover {
-                background-color: #2e333d; /* Couleur encore plus foncée au survol */
+              .input-field {
+                background-color: #2e333d;
+                color: white;
+                width: 100%;
+                text-align: right;
+                margin-right: 10px;
+                border: none;
+                font-size: 1rem;
+                &:focus {
+                  outline: none;
+                }
               }
             }
-            
-            .input-field {
-            background-color: #2e333d;
-            color: white;
-            width: 100%;
-            text-align: right;
-            margin-right: 10px;
-            border: none;
-            font-size: 1rem;
-            &:focus {
-              outline: none;
-            }
-          }
-          }
-          
-  
-          .label {
-            color: #a9aeba;
-          }
-         
-        }
- 
-        .activity-list {
-          .activity-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #333;
-  
-            .activity-text {
+
+            .label {
               color: #a9aeba;
-            }
-  
-            .activity-date {
-              color: #676769;
-              font-size: 0.8rem;
             }
           }
         }

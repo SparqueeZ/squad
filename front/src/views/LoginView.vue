@@ -29,6 +29,16 @@
         <button type="button" @click="goToRegister" class="btn-secondary">
           Créer un compte
         </button>
+        <button type="button" @click="resetPassword" class="btn-secondary">
+          Réinitialiser mon Mot de Passe
+        </button>
+        <input
+          v-if="reset"
+          v-model="email"
+          type="text"
+          placeholder="Adresse Mail"
+          class="input-field"
+        />
       </div>
     </form>
   </div>
@@ -49,11 +59,36 @@ const password = ref("12345");
 const mfa = ref("123465");
 const captchaToken = ref("");
 // const csrfToken = ref("");
+const reset = ref(false)
 const router = useRouter();
+
+const resetPassword = async () => {
+  if (reset.value === true) {
+    reset.value = false;
+  } else {
+    reset.value = true;
+  }
+}
+
+function validateInput(username, password) {
+  const regexUsername = /^[\p{L}\p{N}\s]+$/u;
+  const regexPassword = /^.{5,}$/;
+  if (!regexUsername.test(username) || !regexPassword.test(password)) {
+    alert("Entrée invalide !");
+    return false;
+  }
+  return true;
+};
 
 const login = async () => {
   // if (username.value && password.value && captchaToken.value) {
   if (username.value && password.value) {
+    if (!validateInput(username.value, password.value)) {
+      e.preventDefault();
+    }
+
+
+
     // This line is for testing without captcha
     // const response = await fetch(
     //   "https://api.sparqueez.org/api/validate-captcha",

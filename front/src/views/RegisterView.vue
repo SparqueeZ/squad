@@ -77,8 +77,21 @@ const onFileChange = (event, type) => {
   }
 };
 
+function validateInput(username, password) {
+  const regexUsername = /^[\p{L}\p{N}\s]+$/u;
+  const regexPassword = /^.{5,}$/;
+  if (!regexUsername.test(username) || !regexPassword.test(password)) {
+    alert("Entrée invalide !");
+    return false;
+  }
+  return true;
+};
+
 const register = async () => {
   if (username.value && password.value) {
+    if (!validateInput(username.value) || !validateInput(password.value)) {
+      e.preventDefault();
+    }
     const formData = new FormData();
     formData.append("username", username.value);
     formData.append("email", email.value);
