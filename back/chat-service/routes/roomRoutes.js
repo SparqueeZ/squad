@@ -60,4 +60,16 @@ router.put(
 
 router.post("/addUser", authenticateToken, roomController.addUserToRoom);
 
+router.post(
+  "/invite/accept",
+  authenticateToken,
+  roomController.acceptRoomInvitation
+);
+router.post(
+  "/invite/decline",
+  authenticateToken,
+  roomController.declineRoomInvitation
+);
+router.post("/leave", authenticateToken, roomController.leaveRoom);
+
 module.exports = router;

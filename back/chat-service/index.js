@@ -7,6 +7,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const dbConfig = require("./config/db");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);

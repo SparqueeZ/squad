@@ -180,7 +180,7 @@ exports.uploadFile = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "Aucun fichier envoyé" });
   }
-   
+
   console.log(`[INFO] - uploadFile - ${req.file.mimetype}`);
   let { roomId, sender } = req.body;
   sender = JSON.parse(sender);
@@ -363,6 +363,7 @@ exports.sendRoomInvitation = async (req, res) => {
       roomId,
       userId,
       roomTitle: room.title,
+      invitingUserId,
     });
 
     res.status(200).json({ message: "Invitation sent successfully" });
@@ -391,6 +392,94 @@ exports.updateRoomUserStatus = async (req, res) => {
     } else {
       res.status(404).json({ message: "User not found in the room" });
     }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.acceptRoomInvitation = async (req, res) => {
+  const { roomId, userId } = req.body;
+
+  try {
+    // Vérifier si la room existe
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Mettre à jour le statut de l'utilisateur dans la room à 'accepted'
+    const userInRoom = room.users.find(
+      (user) => user.userId.toString() === userId
+    );
+    if (userInRoom) {
+      userInRoom.status = "accepted";
+      await room.save();
+    }
+
+    // Appeler le service auth pour mettre à jour le statut de la room de l'utilisateur à 'accepted'
+    await axios.authService.post("/internal/rooms/accept", {
+      roomId,
+      userId,
+    });
+
+    res.status(200).json({ message: "Room invitation accepted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.declineRoomInvitation = async (req, res) => {
+  const { roomId, userId } = req.body;
+
+  try {
+    // Vérifier si la room existe
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Supprimer l'utilisateur de la liste des users de la room
+    room.users = room.users.filter((user) => user.userId.toString() !== userId);
+    await room.save();
+
+    // Appeler le service auth pour supprimer la room de la liste des rooms de l'utilisateur
+    await axios.authService.post("/internal/rooms/decline", {
+      roomId,
+      userId,
+    });
+
+    res.status(200).json({ message: "Room invitation declined successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.leaveRoom = async (req, res) => {
+  const { roomId } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    // Vérifier si la room existe
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Supprimer l'utilisateur de la liste des users de la room
+    room.users = room.users.filter((user) => user.userId.toString() !== userId);
+    await room.save();
+
+    // Appeler le service auth pour supprimer la room de la liste des rooms de l'utilisateur
+    const response = await axios.authService.post("/internal/rooms/leave", {
+      roomId,
+      userId,
+    });
+    console.log(response.data);
+
+    res.status(200).json({ message: "Left the room successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
