@@ -103,9 +103,11 @@
           @click="startTyping()"
         />
 
-        <button type="submit">Envoyer</button>
+        <button class="invisible-button" type="submit">Envoyer</button>
       </form>
-      <Icon name="microphone" />
+      <button :class = "isRecording === true ? `buttonRecording` : `buttonNotRecording`" @click="recordVoice">
+        <Icon name="microphone" />
+      </button>
     </div>
   </div>
 </template>
@@ -120,6 +122,9 @@ import { triggerConfetti } from "@/assets/lib/Confetti";
 import axios from "../assets/axios";
 import { usePopupStore } from "@/stores/popupStore";
 const router = useRouter();
+import ProfileView from "./ProfileView.vue";
+import invitePopup from "@/components/invitePopup.vue";
+// import Settings from "@/components/Settings.vue";
 
 const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
 const APIURL = import.meta.env.VITE_API_URL;
@@ -134,10 +139,6 @@ const chat = useChatStore();
 const user = useUserStore();
 const route = useRoute();
 const someoneIsTyping = ref([]);
-
-import ProfileView from "./ProfileView.vue";
-import invitePopup from "@/components/invitePopup.vue";
-// import Settings from "@/components/Settings.vue";
 
 // Store
 const popupStore = usePopupStore();
@@ -154,6 +155,10 @@ const openProfilePopup = () => {
 const messagesContainer = ref(null);
 const canvas = ref(null);
 const file = ref(null);
+const isRecording = ref(false);
+const audioBlob = ref(null);
+const mediaRecorder = ref(null);
+const audioChunks = ref([]);
 
 const openPopup = () => {
   popup.togglePopup();
@@ -169,6 +174,70 @@ const handleIsTyping = () => {
   // } else {
   //   socket.emit("stoppedTyping", room.actual.room._id, user.username);
   // }
+};
+
+const recordVoice = async () => {
+  if (isRecording.value) {
+
+    mediaRecorder.value.stop();
+    isRecording.value = false;
+  } else {
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      mediaRecorder.value = new MediaRecorder(stream);
+      audioChunks.value = [];
+
+      mediaRecorder.value.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.value.push(event.data);
+        }
+      };
+
+      mediaRecorder.value.onstop = async () => {
+
+        audioBlob.value = new Blob(audioChunks.value, { type: "audio/webm" });
+        console.log("Enregistrement terminé :", audioBlob.value);
+
+    
+        const formData = new FormData();
+        formData.append("file", audioBlob.value);
+        formData.append("roomId", route.params.id);
+        formData.append(
+          "sender",
+          JSON.stringify({ username: user.username, _id: user._id })
+        );
+        console.log(formData);
+
+        try {
+          const response = await axios.post(
+            "/api/chat/room/upload",
+            formData,
+            {
+              headers: { "Content-Type": "multipart/form-data" },
+            }
+          );
+
+          console.log("Audio uploadé avec succès :", response.data);
+
+     
+          socket.emit("fileUploaded", {
+            response,
+          });
+        } catch (error) {
+          console.error("Erreur lors de l'upload de l'audio :", error);
+        }
+      };
+
+      mediaRecorder.value.start();
+      isRecording.value = true;
+      console.log("Enregistrement démarré...");
+    } catch (error) {
+      console.error("Erreur lors de l'accès au micro :", error);
+      alert("Impossible d'accéder au microphone. Vérifiez vos autorisations.");
+    }
+  }
 };
 
 const sendMessage = () => {
@@ -324,7 +393,6 @@ const uploadFile = async () => {
     socket.emit("fileUploaded", {
       response,
     });
-
     file.value = null;
     newMessage.value = "";
   } catch (error) {
@@ -382,7 +450,19 @@ onMounted(() => {
         roomId: data.roomId,
         viewedBy: ["Baptiste"],
       });
+    } else if (data.type === "audio") {
+      console.log(`Audio reçu : ${data.fileName}`);
+      chat.chatList.push({
+        text: `Audio reçu : ${data.fileName}`,
+        filePath: data.filePath,
+        fileName: data.fileName,
+        sender: data.sender,
+        timestamp: getActualDateTime(),
+        roomId: data.roomId,
+        viewedBy: ["Baptiste"],
+    });
     }
+    
   });
 
   socket.on("stoppedTyping", (userData) => {
@@ -695,6 +775,7 @@ watch(
     gap: 1rem;
     width: calc(100% - 2rem);
     justify-content: center;
+    align-items: center;
     input {
       width: 350px;
       flex: 1;
@@ -712,7 +793,15 @@ watch(
         background-color: #2e333d;
       }
     }
-    button {
+    .icon {
+      display: flex;
+      align-items: center;
+      fill: transparent;
+      stroke: #fff;
+      width: 20px;
+      display: flex;
+    }
+    .invisible-button {
       display: none;
       padding: 0.5rem 1rem;
       border-radius: 10px;
@@ -724,13 +813,54 @@ watch(
         background-color: #333;
       }
     }
-    .icon {
+    
+    .buttonRecording {
+      background-color: #ff3b3b;
+      border: none;
+      color: white;
+      width: 30px;
+      height: 30px;
+      padding: 15px;
       display: flex;
       align-items: center;
-      fill: transparent;
-      stroke: #fff;
-      width: 20px;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      outline: none;
+      font-size: 24px;
+      transition: background-color 0.3s ease;
+      animation: pulse 1s infinite;
+    }
+    .buttonNotRecording {
+      background-color: #676769;
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      padding: 15px;
+      border-radius: 50%;
       display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      outline: none;
+      font-size: 24px;
+      transition: background-color 0.3s ease;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
   }
   .file-upload-message {
