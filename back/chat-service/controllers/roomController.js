@@ -181,14 +181,14 @@ exports.uploadFile = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "Aucun fichier envoyé" });
   }
-
-  console.log("[INFO] - uploadFile - req.file ");
+   
+  console.log(`[INFO] - uploadFile - ${req.file.mimetype}`);
   let { roomId, sender } = req.body;
   sender = JSON.parse(sender);
 
   const fileDetails = {
     text: `Fichier : ${req.file.originalname}`,
-    type: "file",
+    type: req.file.mimetype,
     sender,
     roomId,
     viewedBy: [],
