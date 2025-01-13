@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import dayjs from "dayjs";
 // import { io } from "socket.io-client";
 // const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+const APIURL = import.meta.env.VITE_API_URL;
 // export const socket = io(APISOCKETURL);
 const router = useRouter();
 
@@ -14,9 +15,13 @@ export const useUserStore = defineStore("user", {
     role: null,
     unreadMessages: 0,
     rooms: [],
-    createdAt : null,
+    createdAt: null,
     csrfToken: "",
     _id: "",
+    avatar: "",
+    banner: "",
+    avatarLink: "",
+    bannerLink: "",
   }),
   actions: {
     async fetchProfile() {
@@ -34,8 +39,24 @@ export const useUserStore = defineStore("user", {
         this.role = response.data.user.role;
         this.unreadMessages = [];
         this.rooms = response.data.user.rooms;
-        this.createdAt = dayjs(response.data.user.createdAt).format("DD/MM/YYYY");
+        this.createdAt = dayjs(response.data.user.createdAt).format(
+          "DD/MM/YYYY"
+        );
         this._id = response.data.user._id;
+
+        // Fetch user images
+        const imagesResponse = await axios.get("/api/auth/user/images", {
+          withCredentials: true,
+          headers: {
+            "x-csrf-token": csrfToken,
+          },
+        });
+        this.avatar = imagesResponse.data.avatar;
+        this.banner = imagesResponse.data.banner;
+        this.avatarLink = `${APIURL}/api/auth/uploads/${imagesResponse.data.avatar}`;
+        this.bannerLink = `${APIURL}/api/auth/uploads/${imagesResponse.data.banner}`;
+
+        console.log("imagesResponse", imagesResponse.data);
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
         router.push("/");
@@ -78,12 +99,12 @@ export const useUserStore = defineStore("user", {
     },
     async updateEmail(email) {
       try {
-        await axios.put(`/api/auth/infosUpdate`, {email});
+        await axios.put(`/api/auth/infosUpdate`, { email });
       } catch (error) {
         console.error("Erreur lors du changement d'email : ", error);
       }
     },
-    
+
     async register(formData) {
       try {
         const response = await axios.post("/api/auth/register", formData, {

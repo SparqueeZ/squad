@@ -136,12 +136,12 @@ exports.addUserToRoom = async (req, res) => {
 async function addRoomToUser(userId, roomId) {
   console.log(roomId);
   try {
-    const response = await axios.userService.post(`/internal/${userId}`, {
+    const response = await axios.authService.put(`/internal/rooms/${userId}`, {
       roomId,
     });
     return response;
   } catch (err) {
-    console.error(err.data.error);
+    console.error(err);
     throw new Error("Error adding room to user");
   }
 }

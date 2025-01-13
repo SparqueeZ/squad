@@ -93,7 +93,7 @@ const register = async () => {
 
     try {
       await user.register(formData);
-      router.push("/chat");
+      router.push("/");
     } catch (error) {
       console.error("Erreur lors de la création du compte : ", error);
     }

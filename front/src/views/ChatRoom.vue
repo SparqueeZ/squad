@@ -12,7 +12,11 @@
         <div class="room-users">
           <div class="users">
             <div v-for="user in room.actual.users" :key="user._id" class="user">
-              <p>{{ user.username }}</p>
+              <img
+                :src="`${APIURL}/api/auth/uploads/${user.avatar}`"
+                alt=""
+                srcset=""
+              />
             </div>
           </div>
         </div>
@@ -20,8 +24,7 @@
     </div>
     <div class="messages" ref="messagesContainer">
       <div
-        v-for="message in user.rooms.find((r) => r._id === route.params.id)
-          .messages"
+        v-for="message in room.messages"
         :key="message._id"
         :id="message._id"
         class="message"
@@ -30,7 +33,13 @@
         <div
           class="message-sender-img"
           @click="createPrivateRoom(message.sender._id)"
-        ></div>
+        >
+          <img
+            :src="`${APIURL}/api/auth/uploads/${message.sender.avatar}`"
+            alt=""
+            srcset=""
+          />
+        </div>
         <div class="message-bubble">
           <div class="message-sender">
             <p>{{ message.sender.username }}</p>
@@ -102,6 +111,7 @@ import axios from "../assets/axios";
 const router = useRouter();
 
 const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
+const APIURL = import.meta.env.VITE_API_URL;
 const socket = io(APISOCKETURL);
 const newMessage = ref("");
 import { useUserStore } from "@/stores/userStore";
@@ -111,6 +121,8 @@ const room = useRoomStore();
 const chat = useChatStore();
 const user = useUserStore();
 const route = useRoute();
+
+const usersAvatars = ref([]);
 
 const someoneIsTyping = ref([]);
 
@@ -138,7 +150,11 @@ const sendMessage = () => {
   ) {
     const message = {
       text: newMessage.value,
-      sender: { username: user.username, _id: user._id },
+      sender: {
+        username: user.username,
+        _id: user._id,
+        avatar: user.avatar ? user.avatar : "",
+      },
       timestamp: getActualDateTime(),
       roomId: route.params.id,
       viewedBy: ["Baptiste"],
@@ -305,6 +321,14 @@ onMounted(() => {
   canvas.value = document.getElementById("canvas");
   user.rooms.forEach((r) => {
     socket.emit("joinRoom", user.username, r._id);
+    // r.users.forEach((u) => {
+    //   if (!usersAvatars.value.includes(u._id)) {
+    //     usersAvatars.value.push({
+    //       _id: u._id,
+    //       avatar: u.avatar,
+    //     });
+    //   }
+    // });
   });
   socket.on("receiveMessage", (message) => {
     if (message.text.includes("Joyeux anniversaire")) {
@@ -312,6 +336,7 @@ onMounted(() => {
     }
     console.log("Message reçu :", message);
     user.addMessageToRoom(message, message.roomId);
+    room.addMessageToRoom(message, message.roomId);
     scrollToBottom();
   });
   socket.on("isTyping", (userData) => {
@@ -348,7 +373,8 @@ onMounted(() => {
   });
 
   if (route.params.id) {
-    chat.fetchChatListByRoomId(route.params.id);
+    // chat.fetchChatListByRoomId(route.params.id);
+    room.fetchChatListByRoomId(route.params.id);
     const newRoom = user.rooms.find((r) => r._id === route.params.id);
     room.setActualRoom(newRoom);
   }
@@ -368,7 +394,7 @@ watch(
   () => route.params.id,
   async (newId) => {
     if (route.params.id) {
-      await chat.fetchChatListByRoomId(newId);
+      await room.fetchChatListByRoomId(route.params.id);
       const newRoom = user.rooms.find((r) => r._id === newId);
       room.setActualRoom(newRoom);
 
@@ -402,6 +428,7 @@ watch(
     padding: 1rem;
     border-bottom: 1px solid #333;
     display: flex;
+    justify-content: space-between;
     .room-infos {
       display: flex;
       flex-direction: column;
@@ -427,14 +454,21 @@ watch(
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
         .user {
-          padding: 0.5rem;
-          width: 20px;
-          height: 20px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           background-color: #333;
           color: #fff;
           font-size: 0.8rem;
+          border: 5px solid #202329;
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+          }
         }
       }
     }
@@ -464,6 +498,12 @@ watch(
         height: 50px;
         background-color: #333;
         border-radius: 20%;
+        overflow: hidden;
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
       }
       .message-bubble {
         padding: 1rem 1rem 0.5rem 1rem;

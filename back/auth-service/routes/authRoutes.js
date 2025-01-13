@@ -4,6 +4,7 @@ const authController = require("../controllers/authController");
 const authenticateToken = require("../middlewares/authMiddleware");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -28,6 +29,14 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: fileFilter,
 });
+
+// router.use((req, res, next) => {
+//   const allowedOrigin = "http://localhost:3000";
+//   if (req.headers.origin !== allowedOrigin) {
+//     return res.status(403).send("Accès refusé");
+//   }
+//   next();
+// });
 
 router.post("/login", authController.loginUser);
 router.get("/logout", authController.logoutUser);
@@ -63,5 +72,6 @@ router.post(
 );
 
 router.get("/user/images", authenticateToken, authController.getUserImages);
+router.post("/user/images", authenticateToken, authController.getUserImages);
 
 module.exports = router;
