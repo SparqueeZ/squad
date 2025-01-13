@@ -50,7 +50,6 @@ router.put("/infosUpdate", authenticateToken, authController.updateUserProfile);
 router.post("/profile", authenticateToken, authController.getUserProfile);
 
 router.post("/mfa/setup", authController.setupMFA);
-router.post("/mfa/verify", authController.verifyMFA);
 router.post("/mfa/reset", authController.resetMFA);
 
 router.get("/", authController.getAllUsers);

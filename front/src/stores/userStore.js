@@ -22,6 +22,7 @@ export const useUserStore = defineStore("user", {
     banner: "",
     avatarLink: "",
     bannerLink: "",
+    mfaStatus: null,
   }),
   actions: {
     async fetchProfile() {
@@ -57,17 +58,19 @@ export const useUserStore = defineStore("user", {
         this.bannerLink = `${APIURL}/api/auth/uploads/${imagesResponse.data.banner}`;
 
         console.log("imagesResponse", imagesResponse.data);
+        this.mfaStatus = response.data.user.mfaStatus;
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
         router.push("/");
       }
     },
-    async login(username, password) {
+    async login(username, password, mfa) {
       const router = useRouter();
       try {
         const response = await axios.post("/api/auth/login", {
           username,
           password,
+          mfa,
         });
         if (response.status === 200) {
           const csrfToken = getCsrfToken();
@@ -84,6 +87,7 @@ export const useUserStore = defineStore("user", {
           this.unreadMessages = [];
           this.rooms = profile.data.user.rooms;
           this.createdAt = profile.data.user.createdAt;
+          this.mfaStatus = profile.data.user.mfaStatus;
           // this.csrfToken = csrfToken;
           this._id = profile.data.user._id;
 
@@ -105,6 +109,24 @@ export const useUserStore = defineStore("user", {
       }
     },
 
+    async updateMfaStatus(username) {
+      try {
+        if (this.mfaStatus === true) {
+          await axios.post("/api/auth/mfa/reset", {username});
+          this.mfaStatus = false;
+        } else if (this.mfaStatus === false) {
+          const reponse = await axios.post("/api/auth/mfa/setup", {username});
+          if (reponse.data.qrCode != null) {
+            console.log("Qrcode is here");
+          }
+          this.mfaStatus = true;
+          return reponse.data.qrCode;
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'update du mfa", error);
+      }
+    },
+    
     async register(formData) {
       try {
         const response = await axios.post("/api/auth/register", formData, {

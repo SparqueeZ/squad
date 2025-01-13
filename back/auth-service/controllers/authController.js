@@ -32,6 +32,47 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
+    if (user.mfaStatus === true) {
+      const { mfa } = req.body;
+      console.log(mfa);
+      console.log(user.mfaSecret);
+      if (!mfa) {
+        res.json({ success: false, message: "Insert MFA" });
+      }
+      try {
+        const user = await User.findOne({ username });
+        if (!user) {
+          return res
+            .status(404)
+            .json({ success: false, message: "User not found" });
+        }
+        if (!user.mfaSecret) {
+          return res.status(400).json({
+            success: false,
+            message: "MFA is not set up for this user",
+          });
+        }
+    
+        // Vérifier le code TOTP
+        const verified = speakeasy.totp.verify({
+          secret: user.mfaSecret,
+          encoding: "base32",
+          token: mfa,
+          window: 1,
+        });
+    
+        if (verified) {
+          console.log("MFA verified successfully");
+        } else {
+          console.log("Invalid MFA token");
+          return res.status(400).json({ success: false, message: "Invalid MFA token" });
+        }
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "Error verifying MFA" });
+      }
+    }
+
     const authToken = jwt.sign(
       {
         userId: user._id,
@@ -233,6 +274,7 @@ exports.getUserProfile = async (req, res) => {
 };
 
 exports.setupMFA = async (req, res) => {
+  console.log("[INFO] Setting up MFA");
   try {
     const user = await User.findOne({ username: req.body.username });
     if (!user) {
@@ -253,7 +295,9 @@ exports.setupMFA = async (req, res) => {
     });
 
     user.mfaSecret = secret.base32;
+    user.mfaStatus = true;
     await user.save();
+    
 
     const qrCode = await qrcode.toDataURL(secret.otpauth_url);
 
@@ -269,45 +313,12 @@ exports.setupMFA = async (req, res) => {
   }
 };
 
-exports.verifyMFA = async (req, res) => {
-  try {
-    const { username, token } = req.body;
-
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-    if (!user.mfaSecret) {
-      return res.status(400).json({
-        success: false,
-        message: "MFA is not set up for this user",
-      });
-    }
-
-    // Vérifier le code TOTP
-    const verified = speakeasy.totp.verify({
-      secret: user.mfaSecret,
-      encoding: "base32",
-      token,
-      window: 1,
-    });
-
-    if (verified) {
-      res.json({ success: true, message: "MFA verified successfully" });
-    } else {
-      res.status(400).json({ success: false, message: "Invalid MFA token" });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Error verifying MFA" });
-  }
-};
-
 exports.resetMFA = async (req, res) => {
+  console.log("[INFO] Reseting MFA");
+  const { username } = req.body;
+  console.log(username);
   try {
-    const { username } = req.body;
+    
 
     const user = await User.findOne({ username });
     if (!user) {
@@ -317,6 +328,7 @@ exports.resetMFA = async (req, res) => {
     }
 
     user.mfaSecret = null;
+    user.mfaStatus = false;
     await user.save();
 
     res.json({ success: true, message: "MFA reset successfully" });
