@@ -10,7 +10,10 @@
 
     <div class="profile-header">
       <div class="profile-picture">
-        <img :src="user.avatarLink || defaultAvatar" alt="User Profile" />
+        <img
+          :src="`${APIURL}/api/auth/uploads/${user.avatar}` || defaultAvatar"
+          alt="User Profile"
+        />
       </div>
       <div class="profile-info">
         <h1 class="username">{{ user.username }}</h1>
@@ -22,15 +25,23 @@
       <div class="content-section">
         <h2 class="section-title">Informations personnelles</h2>
 
-        <div class="info-item">
+        <div v-if="isUserProfile" class="info-item">
           <span class="label">Email :</span>
           <div class="container-input">
+            <span class="value">{{ user.email }}</span>
             <input v-model="email" type="text" required class="input-field" />
-            <button class="edit-button" @click="updateEmail">Modifier</button>
+            <button
+              v-if="isUserProfile"
+              class="edit-button"
+              @click="updateEmail"
+            >
+              Modifier
+            </button>
           </div>
 
           <div class="info-item">
             <button
+              v-if="isUserProfile"
               :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`"
               @click="mfaController"
             >
@@ -41,15 +52,15 @@
 
         <div class="info-item">
           <span class="label">Date d'inscription :</span>
-          <span class="value">{{ user.createdAt }}</span>
+          <span class="value">{{
+            isUserProfile ? user.createdAt : convertDate(user.createdAt)
+          }}</span>
 
           <div class="content-section">
             <div
               id="qr-code-container"
               style="text-align: center; margin-top: 20px"
-            >
-              <!-- Le QR Code sera inséré ici -->
-            </div>
+            ></div>
           </div>
         </div>
 
@@ -64,27 +75,45 @@ import { ref, onMounted } from "vue";
 import defaultAvatar from "../assets/img/default-avatar.jpg";
 import defaultBanner from "../assets/img/default-banner.jpg";
 import { useUserStore } from "@/stores/userStore";
+import { useRoute } from "vue-router";
+import dayjs from "dayjs";
+const route = useRoute();
+const APIURL = import.meta.env.VITE_API_URL;
 
-const user = useUserStore();
-const email = ref(user.email);
+const userStore = useUserStore();
+const user = ref({});
+const email = ref("");
+let isUserProfile = ref(false);
+
+const convertDate = (date) => {
+  return dayjs(date).format("DD/MM/YYYY");
+};
 
 const updateEmail = async () => {
   if (email.value) {
-    user.updateEmail(email.value);
+    userStore.updateEmail(email.value);
   } else {
     console.error("Champ d'entré vide");
   }
 };
 
 onMounted(async () => {
-  await user.fetchProfile();
+  if (route.params.id) {
+    const response = await userStore.fetchProfileById(route.params.id);
+    user.value = response.user;
+    isUserProfile.value = false;
+  } else {
+    await userStore.fetchProfile();
+    user.value = userStore;
+    isUserProfile = true;
+  }
 });
 
 const mfaController = async () => {
-  console.log(username);
+  console.log(user.value.username);
   const qrCodeContainer = document.getElementById("qr-code-container");
   qrCodeContainer.innerHTML = "";
-  const qrcode = await user.updateMfaStatus(username);
+  const qrcode = await userStore.updateMfaStatus(user.value.username);
   if (qrcode != null) {
     displayQRCode(qrcode);
   }

@@ -46,6 +46,7 @@ exports.getRoomById = async (req, res) => {
     const room = await Room.findById(req.params.roomId).select(
       "-createdAt -updatedAt -__v"
     );
+    console.log(room);
     const messages = await Message.find({ roomId: req.params.roomId })
       .select("-createdAt -updatedAt -__v -roomId")
       .sort({ createdAt: -1 })
@@ -100,35 +101,33 @@ exports.createRoom = async (req, res) => {
 };
 
 exports.addUserToRoom = async (req, res) => {
-  try {
-    const userIsInRoom = await checkIfUserIsInRoom(
-      req.body.userId,
-      req.params.roomId
-    );
-    if (!userIsInRoom) {
-      const response = await addRoomToUser(req.body.userId, req.params.roomId);
-      if (response) {
-        console.log(
-          `[INFO] User ${req.body.userId} added to room ${req.params.roomId} successfully`
-        );
+  const { roomId, userId } = req.body;
 
-        const room = await Room.findById(req.params.roomId);
-        room.users.push(req.body.userId);
-        await room.save();
-        res.status(200).json(room);
-      } else {
-        console.error(
-          `[ERROR] User ${req.body.userId} could not be added to room ${req.params.roomId}`
-        );
-      }
-    } else {
-      console.error(
-        `[ERROR] User ${req.body.userId} is already in room ${req.params.roomId}`
-      );
-      res.status(400).json({ error: "User is already in room" });
+  try {
+    // Vérifier si la room existe
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
     }
+
+    // Vérifier si l'utilisateur n'est pas déjà dans la room
+    if (room.users.some((user) => user.userId.toString() === userId)) {
+      return res.status(400).json({ message: "User already in the room" });
+    }
+
+    // Ajouter l'utilisateur à la liste des users de la room avec le statut 'accepted'
+    room.users.push({ userId, status: "accepted" });
+    await room.save();
+
+    // Appeler le service auth pour mettre à jour les rooms de l'utilisateur
+    await axios.authService.put(`/internal/rooms/${userId}`, {
+      roomId,
+      status: "accepted",
+    });
+
+    res.status(200).json({ message: "User added to room successfully" });
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -331,5 +330,69 @@ exports.createPrivateRoom = async (req, res) => {
   } catch (error) {
     console.error("[ERROR] Error while creating private room :", error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+exports.sendRoomInvitation = async (req, res) => {
+  const { roomId, userId } = req.body;
+  const invitingUserId = req.user.userId;
+
+  try {
+    // Vérifier si la room existe
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Vérifier si l'utilisateur qui invite est présent dans la room
+    if (!room.users.some((user) => user.userId.toString() === invitingUserId)) {
+      return res.status(403).json({ message: "Inviting user not in the room" });
+    }
+
+    // Vérifier si l'utilisateur n'est pas déjà dans la room
+    if (room.users.some((user) => user.userId.toString() === userId)) {
+      return res.status(400).json({ message: "User already in the room" });
+    }
+
+    // Ajouter l'utilisateur à la liste des users de la room avec le statut 'pending'
+    room.users.push({ userId, status: "pending" });
+    await room.save();
+
+    // Appeler le service auth pour mettre à jour les rooms de l'utilisateur et envoyer une notification
+    await axios.authService.post("/internal/rooms/invite", {
+      roomId,
+      userId,
+      roomTitle: room.title,
+    });
+
+    res.status(200).json({ message: "Invitation sent successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateRoomUserStatus = async (req, res) => {
+  const { roomId, userId, status } = req.body;
+
+  try {
+    // Vérifier si la room existe
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Mettre à jour le statut de l'utilisateur dans la room
+    const user = room.users.find((user) => user.userId.toString() === userId);
+    if (user) {
+      user.status = status;
+      await room.save();
+      res.status(200).json({ message: "User status updated successfully" });
+    } else {
+      res.status(404).json({ message: "User not found in the room" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 };

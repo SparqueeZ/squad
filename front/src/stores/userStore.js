@@ -10,6 +10,7 @@ const router = useRouter();
 
 export const useUserStore = defineStore("user", {
   state: () => ({
+    _id: "",
     username: null,
     email: null,
     role: null,
@@ -17,12 +18,12 @@ export const useUserStore = defineStore("user", {
     rooms: [],
     createdAt: null,
     csrfToken: "",
-    _id: "",
     avatar: "",
     banner: "",
     avatarLink: "",
     bannerLink: "",
     mfaStatus: null,
+    friends: [],
   }),
   actions: {
     async fetchProfile() {
@@ -59,6 +60,8 @@ export const useUserStore = defineStore("user", {
 
         console.log("imagesResponse", imagesResponse.data);
         this.mfaStatus = response.data.user.mfaStatus;
+        this.friends = response.data.user.friends;
+        console.log("USER: ", response.data.user);
       } catch (error) {
         console.error("Erreur lors du fetchProfile : ", error);
         router.push("/");
@@ -108,14 +111,13 @@ export const useUserStore = defineStore("user", {
         console.error("Erreur lors du changement d'email : ", error);
       }
     },
-
     async updateMfaStatus(username) {
       try {
         if (this.mfaStatus === true) {
-          await axios.post("/api/auth/mfa/reset", {username});
+          await axios.post("/api/auth/mfa/reset", { username });
           this.mfaStatus = false;
         } else if (this.mfaStatus === false) {
-          const reponse = await axios.post("/api/auth/mfa/setup", {username});
+          const reponse = await axios.post("/api/auth/mfa/setup", { username });
           if (reponse.data.qrCode != null) {
             console.log("Qrcode is here");
           }
@@ -126,7 +128,7 @@ export const useUserStore = defineStore("user", {
         console.error("Erreur lors de l'update du mfa", error);
       }
     },
-    
+
     async register(formData) {
       try {
         const response = await axios.post("/api/auth/register", formData, {
@@ -182,6 +184,19 @@ export const useUserStore = defineStore("user", {
         this.createdAt = null;
       } catch (error) {
         console.error("Erreur lors du logout : ", error);
+      }
+    },
+    async fetchProfileById(userId) {
+      const router = useRouter();
+      try {
+        const response = await axios.post("/api/auth/profile", {
+          userId,
+        });
+        console.log("response", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Erreur lors du fetchProfile : ", error);
+        router.push("/");
       }
     },
   },

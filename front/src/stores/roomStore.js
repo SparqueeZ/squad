@@ -38,9 +38,10 @@ export const useRoomStore = defineStore("room", {
         const room = await fetchRoomById(roomId);
         for (const user of room.users) {
           const newUser = {
-            _id: user,
-            avatar: await getUserImages(user),
+            _id: user.userId,
+            avatar: await getUserImages(user.userId),
           };
+          console.log(newUser);
           this.users.push(newUser);
         }
         response.data.forEach((message) => {
@@ -67,8 +68,8 @@ export const useRoomStore = defineStore("room", {
           private: true,
           users: ["60f9b7f7c5f4f7a5f4a5e7f8", "60f9b7f7c5f4f7a5f4a5e7f9"],
         });
-        this.actual = response.data;
         console.log(this.actual);
+        this.actual = response.data;
       } catch (error) {
         console.error("Erreur lors du fetchAllCourses : ", error);
       }

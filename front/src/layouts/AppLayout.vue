@@ -1,5 +1,6 @@
 <template>
   <main class="chatroom-container" v-if="true">
+    <popupComponent />
     <Sidebar />
     <messagesSidebar v-if="user.username" />
     <div v-else class="errorMessageSidebar">Chargement messages sidebar</div>
@@ -19,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+import popupComponent from "@/components/popupComponent.vue";
 import Sidebar from "../components/sidebar.vue";
 import messagesSidebar from "@/components/messagesSidebar.vue";
 import { ref, onMounted } from "vue";

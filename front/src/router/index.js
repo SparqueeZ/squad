@@ -29,7 +29,12 @@ const routes = [
         path: "/profile", //correspond à "/profile"
         name: "profile",
         component: ProfileView,
-      }
+      },
+      {
+        path: "/profile/:id", // Correspond à "/profile/:id"
+        name: "personalizedprofile",
+        component: ProfileView,
+      },
     ],
   },
   {
