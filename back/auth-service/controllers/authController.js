@@ -9,6 +9,7 @@ const qrcode = require("qrcode");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const Notification = require("../models/notificationModel");
 
 const userExists = async (username, email) => {
   const user = await User.findOne({ $or: [{ username }, { email }] });
@@ -239,6 +240,12 @@ exports.getUserProfile = async (req, res) => {
         continue;
       }
       for (let i = 0; i < room.users.length; i++) {
+        console.log();
+        if (room.users[i].status === "pending") {
+          room.users.splice(i, 1);
+          i--;
+          continue;
+        }
         const user = await User.findById(room.users[i].userId).select(
           "username avatar"
         );
@@ -692,11 +699,12 @@ exports.deleteUserFriend = async (req, res) => {
 exports.sendRoomInvitation = async (req, res) => {};
 
 exports.handleRoomInvitation = async (req, res) => {
-  const { roomId, userId, roomTitle } = req.body;
+  const { roomId, userId, roomTitle, invitingUserId } = req.body;
 
   try {
     // Vérifier si l'utilisateur existe
     const user = await User.findById(userId);
+    console.log(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -715,6 +723,7 @@ exports.handleRoomInvitation = async (req, res) => {
       title: "Room Invitation",
       message: `You have been invited to join the room: ${roomTitle}`,
       userId: userId,
+      from: invitingUserId,
     });
     await notification.save();
 
@@ -740,20 +749,54 @@ exports.acceptRoomInvitation = async (req, res) => {
     if (room) {
       room.status = "accepted";
       await user.save();
-
-      // Appeler le service chat pour mettre à jour le statut de l'utilisateur dans la room
-      await axios.chatService.put("/updateUserStatus", {
-        roomId,
-        userId,
-        status: "accepted",
-      });
-
-      res
-        .status(200)
-        .json({ message: "Room invitation accepted successfully" });
-    } else {
-      res.status(404).json({ message: "Room not found in user's rooms" });
     }
+
+    res.status(200).json({ message: "Room invitation accepted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.declineRoomInvitation = async (req, res) => {
+  const { roomId, userId } = req.body;
+
+  try {
+    // Vérifier si l'utilisateur existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Supprimer la room de la liste des rooms de l'utilisateur
+    user.rooms = user.rooms.filter((room) => room.roomId.toString() !== roomId);
+    await user.save();
+
+    res.status(200).json({ message: "Room invitation declined successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.leaveRoom = async (req, res) => {
+  const { roomId, userId } = req.body;
+
+  try {
+    // Vérifier si l'utilisateur existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Supprimer la room de la liste des rooms de l'utilisateur
+    console.log(user.rooms);
+    user.rooms = user.rooms.filter((room) => room.roomId.toString() !== roomId);
+    await user.save();
+
+    console.log(user.rooms);
+
+    res.status(200).json({ message: "Left the room successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
