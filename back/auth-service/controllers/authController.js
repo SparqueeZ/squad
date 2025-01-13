@@ -139,13 +139,24 @@ exports.logoutUser = async (req, res) => {
 };
 
 exports.registerUser = async (req, res) => {
-  let { username, email, password, rooms } = req.body;
-  rooms ? rooms : (rooms = ["67562a9100035c1096e6ba9d"]);
+  let { username, email, bio, password, confirmedPassword, rooms } = req.body;
+
+  let defaultRoomId = "67562a9100035c1096e6ba9d";
+  rooms
+    ? rooms
+    : (rooms = [{ roomId: "67562a9100035c1096e6ba9d", status: "accepted" }]);
 
   if (!validateInput(username, email)) {
     return res
       .status(400)
       .json({ message: "Invalid username or email format" });
+  }
+
+  if (password != confirmedPassword) {
+    console.log("Passwords don't match");
+    return res
+      .status(400)
+      .json({ message: "Passwords don't match" })
   }
 
   try {
@@ -159,13 +170,28 @@ exports.registerUser = async (req, res) => {
     const newUser = new User({
       username,
       email,
+      bio,
       password,
-      rooms,
+      rooms: [],
       avatar,
       banner,
     });
+    console.log("User créé avec succès");
     const savedUser = await newUser.save();
-    res.status(201).json(savedUser);
+
+    try {
+      const response = await axios.chatService.post(
+        `/internal/addUser/${defaultRoomId}`,
+        {
+          roomId: defaultRoomId,
+          userId: savedUser._id,
+        }
+      );
+      console.log(response);
+      
+      res.status(201).json(savedUser);
+
+    } catch (error) {}
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

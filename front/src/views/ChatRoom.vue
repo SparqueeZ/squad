@@ -50,23 +50,12 @@
           </p>
           <div v-if="message.filePath" class="message-content">
 
-            <div v-if="message.type===(`image/png` || `image/jpg` || `image/jpeg`)">
-              <a
-                v-if="message.filePath"
-                @click="downloadFile(message.filePath, message.fileName)"
-              >
-                <img
-                  :src="`${APIURL}api/chat${message.filePath}`"
-                  alt=""
-                  srcset=""
-                />
-              </a>
-            </div>
+            <div v-if=" message.type === 'image/jpeg' || message.type === 'image/png' || message.type === 'image/jpg' " > <a v-if="message.filePath" @click="downloadFile(message.filePath, message.fileName)" > <img :src="`${APIURL}/api/chat${message.filePath}`" alt="" srcset="" /> </a> </div>
 
             <div v-if="message.type===(`audio/webm`)" class="audio-message">
               <div class="audio-player">
                 <video
-                  src="http://localhost:3000/api/chat/uploads/1736795587873-176611469.webm"
+                  :src="`${APIURL}/api/chat${message.filePath}`"
                   controls
                   width="350"
                   height="50"

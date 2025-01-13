@@ -32,6 +32,13 @@
         class="input-field"
       />
       <input
+        v-model="confirmedPassword"
+        type="password"
+        placeholder="Confirmez le mot de passe"
+        required
+        class="input-field"
+      />
+      <input
         type="file"
         @change="onFileChange($event, 'avatar')"
         class="input-field"
@@ -54,9 +61,9 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { io } from "socket.io-client";
+//import { io } from "socket.io-client";
 const APIURL = import.meta.env.VITE_API_URL;
-const socket = io(APIURL);
+//const socket = io(APIURL);
 import { useUserStore } from "@/stores/userStore";
 const user = useUserStore();
 
@@ -64,6 +71,7 @@ const username = ref("Baptisto");
 const email = ref("bapt@gmail.com");
 const biography = ref("b");
 const password = ref("12345");
+const confirmedPassword = ref("12345");
 const avatar = ref(null);
 const banner = ref(null);
 const router = useRouter();
@@ -77,10 +85,11 @@ const onFileChange = (event, type) => {
   }
 };
 
-function validateInput(username, password) {
+function validateInput(username, password, email) {
   const regexUsername = /^[\p{L}\p{N}\s]+$/u;
   const regexPassword = /^.{5,}$/;
-  if (!regexUsername.test(username) || !regexPassword.test(password)) {
+  const regexEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!regexUsername.test(username) || !regexPassword.test(password) || !regexEmail.test(email) || !regexPassword.test(confirmedPassword)) {
     alert("Entrée invalide !");
     return false;
   }
@@ -89,14 +98,16 @@ function validateInput(username, password) {
 
 const register = async () => {
   if (username.value && password.value) {
-    if (!validateInput(username.value) || !validateInput(password.value)) {
+    if (!validateInput(username.value, password.value, email.value)) {
       e.preventDefault();
     }
     const formData = new FormData();
     formData.append("username", username.value);
     formData.append("email", email.value);
-    formData.append("biography", biography.value);
+    formData.append("bio", biography.value);
     formData.append("password", password.value);
+    formData.append("confirmedPassword", confirmedPassword.value);
+    
     if (avatar.value) {
       formData.append("avatar", avatar.value);
     }
