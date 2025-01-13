@@ -13,12 +13,7 @@ module.exports = (io) => {
     // Événement pour recevoir un message
     socket.on("sendMessage", async (data) => {
       try {
-        // Sauvegarder le message dans MongoDB
-        //const newMessage = new Message(data.message);
-        //const savedMessage = await newMessage.save();
         console.log("[ALERT] - Enregistrement en BDD");
-
-        console.log(data);
 
         // Faire une requete API pour enregistrer le message
         let response;
@@ -30,10 +25,10 @@ module.exports = (io) => {
           // Émettre uniquement les données nécessaires
           io.to(data.message.roomId).emit("receiveMessage", response.data);
         } catch (err) {
-          // console.error("Error saving message:", err);
+          console.error("Error saving message:", err);
         }
       } catch (err) {
-        // console.error("Error saving message:", err);
+        console.error("Error saving message:", err);
       }
     });
 

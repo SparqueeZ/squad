@@ -7,6 +7,8 @@ const crypto = require("crypto");
 const speakeasy = require("speakeasy");
 const qrcode = require("qrcode");
 const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const userExists = async (username, email) => {
   const user = await User.findOne({ $or: [{ username }, { email }] });
@@ -133,7 +135,7 @@ exports.logoutUser = async (req, res) => {
 
 exports.registerUser = async (req, res) => {
   let { username, email, password, rooms } = req.body;
-  rooms ? rooms : (rooms = ["673382c2f30357627ee996e4"]);
+  rooms ? rooms : (rooms = ["67562a9100035c1096e6ba9d"]);
 
   if (!validateInput(username, email)) {
     return res
@@ -230,7 +232,9 @@ exports.getUserProfile = async (req, res) => {
         continue;
       }
       for (let i = 0; i < room.users.length; i++) {
-        const user = await User.findById(room.users[i]).select("username");
+        const user = await User.findById(room.users[i]).select(
+          "username avatar"
+        );
         room.users[i] = user;
       }
       if (room.private) {
@@ -446,15 +450,17 @@ exports.updateUserRooms = async (req, res) => {
 };
 
 exports.updateUserProfile = async (req, res) => {
-  console.log(`[INFO] Updating user's ${req.user.userId} profile with : ${req.body.email}`);
+  console.log(
+    `[INFO] Updating user's ${req.user.userId} profile with : ${req.body.email}`
+  );
   const userId = req.user.userId;
   const email = req.body.email;
-  
+
   if (userId) {
     console.log(email);
     try {
       const user = await User.updateOne(
-        {_id: userId},
+        { _id: userId },
         { $set: { email: email } }
       );
       res.json(user);
@@ -465,21 +471,58 @@ exports.updateUserProfile = async (req, res) => {
   } else {
     console.error("[ERROR] missing user Id");
   }
-}
+};
 
 exports.getUserImages = async (req, res) => {
   try {
     console.log("[INFO] - getUserImages");
-    const user = await User.findById(req.user.userId).select("avatar banner");
-    if (!user) {
+    let user;
+    let isUserProfile;
+    if (req.user) {
+      user = req.user;
+      if (req.body.userId) {
+        console.log("Demande de requete POST");
+        user = req.body;
+        isUserProfile = false;
+      } else {
+        console.log("Demande de requete GET");
+        user = req.user;
+        // req.body.userId = user.userId;
+        isUserProfile = true;
+      }
+    } else {
+      user = req.body;
+    }
+
+    console.log(user.userId);
+
+    const db_user = await User.findById({ _id: user.userId }).select(
+      "avatar banner"
+    );
+    console.log(db_user);
+
+    if (!db_user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const baseUrl = "http://localhost:3000"; // Change this to your API gateway URL
     res.json({
-      avatar: user.avatar ? `${baseUrl}/uploads/${user.avatar}` : null,
-      banner: user.banner ? `${baseUrl}/uploads/${user.banner}` : null,
+      avatar: db_user.avatar ? `${db_user.avatar}` : null,
+      banner: db_user.banner ? `${db_user.banner}` : null,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
+};
+
+exports.getFile = (req, res) => {
+  const fileName = req.params.fileName;
+  const filePath = path.join(__dirname, "../uploads", fileName);
+  console.log("[INFO] - getFile - filePath : ", filePath);
+  console.log(fileName);
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).json({ message: "Fichier introuvable" });
+    }
+    res.sendFile(filePath);
+  });
 };

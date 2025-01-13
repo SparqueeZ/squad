@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const dbConfig = require("./config/db");
 const axios = require("./config/axios");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
@@ -11,6 +12,7 @@ const authRoutes = require("./routes/authRoutes");
 const PORT = 3001;
 
 app.use("/", authRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 mongoose
   .connect(dbConfig.url)

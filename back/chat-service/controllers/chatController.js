@@ -50,6 +50,7 @@ exports.createMessage = async (req, res) => {
       sender: {
         username: req.body.message.sender.username,
         _id: req.body.message.sender.userId,
+        avatar: req.body.message.sender.avatar,
       },
     };
     const newMessage = new Message(message);

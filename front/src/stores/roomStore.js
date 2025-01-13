@@ -9,6 +9,9 @@ export const useRoomStore = defineStore("room", {
     roomList: [],
     actual: {},
     lastMessage: {},
+    messages: [],
+    users: [],
+    roomId: "",
   }),
   actions: {
     async fetchRoomList() {
@@ -24,7 +27,33 @@ export const useRoomStore = defineStore("room", {
       try {
         const response = await axios.get(`/api/chat/room/${roomId}`);
         this.actual = response.data;
-        console.log(this.actual);
+        this.roomId = roomId;
+      } catch (error) {
+        console.error("Erreur lors du fetchAllCourses : ", error);
+      }
+    },
+    async fetchChatListByRoomId(roomId) {
+      try {
+        const response = await axios.get(`/api/chat/${roomId}`);
+        const room = await fetchRoomById(roomId);
+        for (const user of room.users) {
+          const newUser = {
+            _id: user,
+            avatar: await getUserImages(user),
+          };
+          this.users.push(newUser);
+        }
+        response.data.forEach((message) => {
+          this.users.forEach(async (user) => {
+            if (user._id === message.sender._id) {
+              if (!user.avatar) {
+                message.sender.avatar = await getUserImages(user._id);
+              }
+              message.sender.avatar = user.avatar;
+            }
+          });
+        });
+        this.messages = response.data;
       } catch (error) {
         console.error("Erreur lors du fetchAllCourses : ", error);
       }
@@ -64,6 +93,19 @@ export const useRoomStore = defineStore("room", {
         console.error("Erreur lors du fetchAllCourses : ", error);
       }
     },
+    addMessageToRoom(message, roomId) {
+      if (roomId === this.actual._id) {
+        this.users.forEach(async (user) => {
+          if (user._id === message.sender._id) {
+            if (!user.avatar) {
+              message.sender.avatar = await getUserImages(user._id);
+            }
+            message.sender.avatar = user.avatar;
+          }
+        });
+      }
+      this.messages.push(message);
+    },
     setActualRoom(room) {
       this.actual = room;
     },
@@ -74,3 +116,19 @@ export const useRoomStore = defineStore("room", {
     },
   },
 });
+
+const getUserImages = async (user) => {
+  const response = await axios.post(`/api/auth/user/images/`, {
+    userId: user,
+  });
+  return response.data.avatar;
+};
+
+const fetchRoomById = async (roomId) => {
+  try {
+    const response = await axios.get(`/api/chat/room/${roomId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors du fetchAllCourses : ", error);
+  }
+};

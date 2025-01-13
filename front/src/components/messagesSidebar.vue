@@ -33,6 +33,7 @@
           </div>
         </div>
         <router-link
+          v-if="user.rooms.length > 0"
           v-for="(r, index) in user.rooms"
           :key="index"
           :id="`room-${index}`"
