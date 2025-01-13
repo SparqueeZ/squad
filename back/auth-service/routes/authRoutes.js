@@ -62,7 +62,10 @@ router.get("/rooms", authenticateToken, authController.getUserRooms);
 
 router.post("/internal/user/data", authController.authenticateToken);
 router.put("/internal/rooms/:userId", authController.updateUserRooms);
-
+router.post("/internal/rooms/invite", authController.handleRoomInvitation);
+router.post("/internal/rooms/accept", authController.acceptRoomInvitation);
+router.post("/internal/rooms/decline", authController.declineRoomInvitation);
+router.post("/internal/rooms/leave", authController.leaveRoom);
 // TODO : Changer la route et en créer une pour pouvoir récupérer les données de l'utilisateur
 router.post(
   "/messages/viewed",
