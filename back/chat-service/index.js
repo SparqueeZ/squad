@@ -29,6 +29,7 @@ app.use((req, res, next) => {
 // Routes API REST
 app.use("/", chatRoutes);
 app.use("/room", roomRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const PORT = process.env.PORT || 3003;
 

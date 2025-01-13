@@ -49,16 +49,34 @@
             {{ message.filePath ? "" : message.text }}
           </p>
           <div v-if="message.filePath" class="message-content">
-            <a
-              v-if="message.filePath"
-              @click="downloadFile(message.filePath, message.fileName)"
-            >
-              <img
-                :src="`${APIURL}/api/chat${message.filePath}`"
-                alt=""
-                srcset=""
-              />
-            </a>
+
+            <div v-if="message.type===(`image/png` || `image/jpg` || `image/jpeg`)">
+              <a
+                v-if="message.filePath"
+                @click="downloadFile(message.filePath, message.fileName)"
+              >
+                <img
+                  :src="`${APIURL}api/chat${message.filePath}`"
+                  alt=""
+                  srcset=""
+                />
+              </a>
+            </div>
+
+            <div v-if="message.type===(`audio/webm`)" class="audio-message">
+              <div class="audio-player">
+                <video
+                  src="http://localhost:3000/api/chat/uploads/1736795587873-176611469.webm"
+                  controls
+                  width="350"
+                  height="50"
+                >
+                  Votre navigateur ne prend pas en charge la lecture des vidéos au format WebM.
+                </video>
+              </div>
+            </div>
+            
+            
           </div>
           <div class="message-infos">
             <p class="message-date">
