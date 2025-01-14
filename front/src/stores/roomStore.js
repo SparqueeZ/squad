@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import axios from "../assets/axios";
+import { useUserStore } from "./userStore"; // Import userStore
 // import { io } from "socket.io-client";
 // const APISOCKETURL = import.meta.env.VITE_API_SOCKET_URL;
 // export const socket = io(APISOCKETURL);
@@ -68,7 +69,6 @@ export const useRoomStore = defineStore("room", {
           private: true,
           users: ["60f9b7f7c5f4f7a5f4a5e7f8", "60f9b7f7c5f4f7a5f4a5e7f9"],
         });
-        console.log(this.actual);
         this.actual = response.data;
       } catch (error) {
         console.error("Erreur lors du fetchAllCourses : ", error);
@@ -119,15 +119,27 @@ export const useRoomStore = defineStore("room", {
 });
 
 const getUserImages = async (user) => {
-  const response = await axios.post(`/api/auth/user/images/`, {
-    userId: user,
-  });
+  const userStore = useUserStore(); // Get the userStore instance
+  const response = await axios.post(
+    `/api/auth/user/images/`,
+    { userId: user },
+    {
+      headers: {
+        "X-CSRF-Token": userStore.csrfToken, // Include CSRF token in headers
+      },
+    }
+  );
   return response.data.avatar;
 };
 
 const fetchRoomById = async (roomId) => {
+  const userStore = useUserStore(); // Get the userStore instance
   try {
-    const response = await axios.get(`/api/chat/room/${roomId}`);
+    const response = await axios.get(`/api/chat/room/${roomId}`, {
+      headers: {
+        "X-CSRF-Token": userStore.csrfToken, // Include CSRF token in headers
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Erreur lors du fetchAllCourses : ", error);

@@ -49,10 +49,26 @@
             {{ message.filePath ? "" : message.text }}
           </p>
           <div v-if="message.filePath" class="message-content">
+            <div
+              v-if="
+                message.type === 'image/jpeg' ||
+                message.type === 'image/png' ||
+                message.type === 'image/jpg'
+              "
+            >
+              <a
+                v-if="message.filePath"
+                @click="downloadFile(message.filePath, message.fileName)"
+              >
+                <img
+                  :src="`${APIURL}/api/chat${message.filePath}`"
+                  alt=""
+                  srcset=""
+                />
+              </a>
+            </div>
 
-            <div v-if=" message.type === 'image/jpeg' || message.type === 'image/png' || message.type === 'image/jpg' " > <a v-if="message.filePath" @click="downloadFile(message.filePath, message.fileName)" > <img :src="`${APIURL}/api/chat${message.filePath}`" alt="" srcset="" /> </a> </div>
-
-            <div v-if="message.type===(`audio/webm`)" class="audio-message">
+            <div v-if="message.type === `audio/webm`" class="audio-message">
               <div class="audio-player">
                 <video
                   :src="`${APIURL}/api/chat${message.filePath}`"
@@ -60,12 +76,11 @@
                   width="350"
                   height="50"
                 >
-                  Votre navigateur ne prend pas en charge la lecture des vidéos au format WebM.
+                  Votre navigateur ne prend pas en charge la lecture des vidéos
+                  au format WebM.
                 </video>
               </div>
             </div>
-            
-            
           </div>
           <div class="message-infos">
             <p class="message-date">
@@ -112,7 +127,10 @@
 
         <button class="invisible-button" type="submit">Envoyer</button>
       </form>
-      <button :class = "isRecording === true ? `buttonRecording` : `buttonNotRecording`" @click="recordVoice">
+      <button
+        :class="isRecording === true ? `buttonRecording` : `buttonNotRecording`"
+        @click="recordVoice"
+      >
         <Icon name="microphone" />
       </button>
     </div>
@@ -185,11 +203,9 @@ const handleIsTyping = () => {
 
 const recordVoice = async () => {
   if (isRecording.value) {
-
     mediaRecorder.value.stop();
     isRecording.value = false;
   } else {
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -203,11 +219,9 @@ const recordVoice = async () => {
       };
 
       mediaRecorder.value.onstop = async () => {
-
         audioBlob.value = new Blob(audioChunks.value, { type: "audio/webm" });
         console.log("Enregistrement terminé :", audioBlob.value);
 
-    
         const formData = new FormData();
         formData.append("file", audioBlob.value);
         formData.append("roomId", route.params.id);
@@ -218,17 +232,12 @@ const recordVoice = async () => {
         console.log(formData);
 
         try {
-          const response = await axios.post(
-            "/api/chat/room/upload",
-            formData,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-            }
-          );
+          const response = await axios.post("/api/chat/room/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
 
           console.log("Audio uploadé avec succès :", response.data);
 
-     
           socket.emit("fileUploaded", {
             response,
           });
@@ -467,9 +476,8 @@ onMounted(() => {
         timestamp: getActualDateTime(),
         roomId: data.roomId,
         viewedBy: ["Baptiste"],
-    });
+      });
     }
-    
   });
 
   socket.on("stoppedTyping", (userData) => {
@@ -820,7 +828,7 @@ watch(
         background-color: #333;
       }
     }
-    
+
     .buttonRecording {
       background-color: #ff3b3b;
       border: none;

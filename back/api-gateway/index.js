@@ -19,7 +19,7 @@ app.use(limiter);
 // Utilisation de CORS
 app.use(
   cors({
-    origin: "http://localhost",
+    origin: "https://sparqueez.org",
     credentials: true,
   })
 );

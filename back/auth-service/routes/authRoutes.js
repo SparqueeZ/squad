@@ -5,6 +5,7 @@ const authenticateToken = require("../middlewares/authMiddleware");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const csrfProtection = require("csurf")({ cookie: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -39,19 +40,27 @@ const upload = multer({
 //   next();
 // });
 
-router.post("/login", authController.loginUser);
+router.get("/csrf-token", authController.getCSRFToken);
+
+router.post("/login", csrfProtection, authController.loginUser);
 router.get("/logout", authController.logoutUser);
 router.post(
   "/register",
   upload.fields([{ name: "avatar" }, { name: "banner" }]),
+  csrfProtection,
   authController.registerUser
 );
 router.get("/profile", authenticateToken, authController.getUserProfile);
 router.post("/profile", authenticateToken, authController.getUserProfile);
-router.put("/infosUpdate", authenticateToken, authController.updateUserProfile);
+router.put(
+  "/infosUpdate",
+  authenticateToken,
+  csrfProtection,
+  authController.updateUserProfile
+);
 
-router.post("/mfa/setup", authController.setupMFA);
-router.post("/mfa/reset", authController.resetMFA);
+router.post("/mfa/setup", csrfProtection, authController.setupMFA);
+router.post("/mfa/reset", csrfProtection, authController.resetMFA);
 
 router.get("/", authController.getAllUsers);
 router.get("/rooms", authenticateToken, authController.getUserRooms);
@@ -78,20 +87,28 @@ router.get("/user/images", authenticateToken, authController.getUserImages);
 router.post("/user/images", authenticateToken, authController.getUserImages);
 
 router.get("/user/friends", authenticateToken, authController.getUserFriends);
-router.post("/user/friends", authenticateToken, authController.addUserFriend);
+router.post(
+  "/user/friends",
+  authenticateToken,
+  csrfProtection,
+  authController.addUserFriend
+);
 router.post(
   "/user/friends/accept",
   authenticateToken,
+  csrfProtection,
   authController.acceptUserFriend
 );
 router.post(
   "/user/friends/deny",
   authenticateToken,
+  csrfProtection,
   authController.denyUserFriend
 );
 router.delete(
   "/user/friends",
   authenticateToken,
+  csrfProtection,
   authController.deleteUserFriend
 );
 

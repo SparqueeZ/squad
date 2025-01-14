@@ -59,7 +59,7 @@ const password = ref("12345");
 const mfa = ref("123465");
 const captchaToken = ref("");
 // const csrfToken = ref("");
-const reset = ref(false)
+const reset = ref(false);
 const router = useRouter();
 
 const resetPassword = async () => {
@@ -68,7 +68,7 @@ const resetPassword = async () => {
   } else {
     reset.value = true;
   }
-}
+};
 
 function validateInput(username, password) {
   const regexUsername = /^[\p{L}\p{N}\s]+$/u;
@@ -78,7 +78,7 @@ function validateInput(username, password) {
     return false;
   }
   return true;
-};
+}
 
 const login = async () => {
   // if (username.value && password.value && captchaToken.value) {
@@ -86,8 +86,6 @@ const login = async () => {
     if (!validateInput(username.value, password.value)) {
       e.preventDefault();
     }
-
-
 
     // This line is for testing without captcha
     // const response = await fetch(
@@ -125,6 +123,7 @@ const goToRegister = () => {
 };
 
 onMounted(async () => {
+  await user.fetchCsrfToken();
   // turnstile.render("#turnstile", {
   //   sitekey: "0x4AAAAAAA1lSa4o0C87pIHl",
   //   callback: function (token) {
