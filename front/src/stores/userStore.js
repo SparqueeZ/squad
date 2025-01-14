@@ -29,11 +29,10 @@ export const useUserStore = defineStore("user", {
     async fetchProfile() {
       const router = useRouter();
       try {
-        const csrfToken = getCsrfToken();
         const response = await axios.get("/api/auth/profile", {
           withCredentials: true,
           headers: {
-            "x-csrf-token": csrfToken,
+            "x-csrf-token": this.csrfToken,
           },
         });
         this.username = response.data.user.username;
@@ -50,7 +49,7 @@ export const useUserStore = defineStore("user", {
         const imagesResponse = await axios.get("/api/auth/user/images", {
           withCredentials: true,
           headers: {
-            "x-csrf-token": csrfToken,
+            "x-csrf-token": this.csrfToken,
           },
         });
         this.avatar = imagesResponse.data.avatar;
@@ -70,18 +69,24 @@ export const useUserStore = defineStore("user", {
     async login(username, password, mfa) {
       const router = useRouter();
       try {
-        const response = await axios.post("/api/auth/login", {
-          username,
-          password,
-          mfa,
-        });
+        const response = await axios.post(
+          "/api/auth/login",
+          {
+            username,
+            password,
+            mfa,
+          },
+          {
+            headers: {
+              "x-csrf-token": this.csrfToken,
+            },
+          }
+        );
         if (response.status === 200) {
-          const csrfToken = getCsrfToken();
-
           const profile = await axios.get("/api/auth/profile", {
             withCredentials: true,
             headers: {
-              "x-csrf-token": csrfToken,
+              "x-csrf-token": this.csrfToken,
             },
           });
           this.username = profile.data.user.username;
@@ -142,6 +147,8 @@ export const useUserStore = defineStore("user", {
           this.role = response.data.role;
           this.rooms = response.data.rooms;
           this._id = response.data._id;
+
+          await this.fetchProfile();
         }
       } catch (error) {
         console.error("Erreur lors de la création du compte : ", error);
@@ -199,17 +206,27 @@ export const useUserStore = defineStore("user", {
         router.push("/");
       }
     },
+    setCsrfToken(token) {
+      this._csrfToken = token;
+    },
+    getCsrfToken() {
+      return this._csrfToken;
+    },
+    async fetchCsrfToken() {
+      console.log("fetchCsrfToken");
+      try {
+        const response = await axios.get("/api/auth/csrf-token");
+        console.log("response", response.data.csrfToken);
+        this.csrfToken = response.data.csrfToken; // Stockez le token dans le store
+      } catch (error) {
+        console.error("Erreur lors de la récupération du token CSRF :", error);
+      }
+    },
   },
+
   getters: {
     getUsername(state) {
       return state.username;
     },
   },
 });
-
-const getCsrfToken = () => {
-  return document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("csrf_token="))
-    ?.split("=")[1];
-};

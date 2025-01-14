@@ -2,7 +2,15 @@
   <router-view />
 </template>
 
-<script setup></script>
+<script setup>
+import { ref, onMounted } from "vue";
+import { useUserStore } from "@/stores/userStore";
+const user = useUserStore();
+
+onMounted(async () => {
+  await user.fetchCsrfToken();
+});
+</script>
 
 <style lang="scss">
 body,

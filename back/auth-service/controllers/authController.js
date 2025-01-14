@@ -23,6 +23,12 @@ const validateInput = (username, email) => {
   return usernameRegex.test(username) && emailRegex.test(email);
 };
 
+exports.getCSRFToken = async (req, res) => {
+  console.log("[INFO] - getCRSFToken");
+  const token = req.csrfToken();
+  res.json({ csrfToken: token });
+};
+
 exports.loginUser = async (req, res) => {
   const { username, password } = req.body;
   console.log("[INFO] - loginUser - username : ", username);
@@ -35,8 +41,6 @@ exports.loginUser = async (req, res) => {
 
     if (user.mfaStatus === true) {
       const { mfa } = req.body;
-      console.log(mfa);
-      console.log(user.mfaSecret);
       if (!mfa) {
         res.json({ success: false, message: "Insert MFA" });
       }
@@ -140,7 +144,12 @@ exports.logoutUser = async (req, res) => {
 
 exports.registerUser = async (req, res) => {
   let { username, email, password, rooms } = req.body;
-  rooms ? rooms : (rooms = ["67562a9100035c1096e6ba9d"]);
+  console.log("[INFO] - registerUser - username : ", username);
+
+  let defaultRoomId = "67562a9100035c1096e6ba9d";
+  rooms
+    ? rooms
+    : (rooms = [{ roomId: "67562a9100035c1096e6ba9d", status: "accepted" }]);
 
   if (!validateInput(username, email)) {
     return res
@@ -160,13 +169,24 @@ exports.registerUser = async (req, res) => {
       username,
       email,
       password,
-      rooms,
+      rooms: [],
       avatar,
       banner,
     });
     const savedUser = await newUser.save();
+    console.log("[SUCCESS] - registerUser - User registered successfully");
+
+    const response = await axios.chatService.post(
+      `/room/internal/addUser/${defaultRoomId}`,
+      {
+        roomId: defaultRoomId,
+        userId: savedUser._id,
+      }
+    );
+    console.log(response);
     res.status(201).json(savedUser);
   } catch (err) {
+    console.log("[ERROR] - registerUser - ", err);
     res.status(400).json({ error: err.message });
   }
 };
@@ -695,8 +715,6 @@ exports.deleteUserFriend = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-
-exports.sendRoomInvitation = async (req, res) => {};
 
 exports.handleRoomInvitation = async (req, res) => {
   const { roomId, userId, roomTitle, invitingUserId } = req.body;
