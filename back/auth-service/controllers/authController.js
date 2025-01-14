@@ -157,6 +157,13 @@ exports.registerUser = async (req, res) => {
       .json({ message: "Invalid username or email format" });
   }
 
+  if (password != confirmedPassword) {
+    console.log("Passwords don't match");
+    return res
+      .status(400)
+      .json({ message: "Passwords don't match" })
+  }
+
   try {
     if (await userExists(username, email)) {
       return res.status(409).json({ message: "User already exists" });
@@ -168,11 +175,13 @@ exports.registerUser = async (req, res) => {
     const newUser = new User({
       username,
       email,
+      bio,
       password,
       rooms: [],
       avatar,
       banner,
     });
+    console.log("User créé avec succès");
     const savedUser = await newUser.save();
     console.log("[SUCCESS] - registerUser - User registered successfully");
 
