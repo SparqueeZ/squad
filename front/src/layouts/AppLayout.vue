@@ -51,14 +51,7 @@ const checkUser = () => {
 
 onMounted(async () => {
   await user.fetchProfile();
-  // user.rooms.forEach(async (room) => {
-  //   await chat.fetchChatListByRoomId(room.data.id);
-  // });
-  // await room.fetchRoomList();
   checkUser();
-
-  // console.log(user.username);
-  // setTimeout(() => {}, 1000);
 });
 </script>
 
