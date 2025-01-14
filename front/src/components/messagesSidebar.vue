@@ -82,7 +82,9 @@
         </router-link>
       </div>
       <div class="message-sidebar-footer">
-        <button @click="handleLogout()">Se déconnecter</button>
+        <button class="logout-button" @click="handleLogout()">
+          Se déconnecter
+        </button>
       </div>
     </div>
   </aside>
@@ -132,7 +134,7 @@ const getRelativeTime = (timestamp) => {
 
 const createRoom = () => {
   popupStore.openPopup(createRoomPopup);
-}
+};
 
 const handleLogout = () => {
   if (user.logout()) router.push("/login");
@@ -217,7 +219,7 @@ const handleLogout = () => {
             outline: none;
           }
         }
-        
+
         .icon {
           display: flex;
           fill: transparent;
@@ -323,6 +325,29 @@ const handleLogout = () => {
               }
             }
           }
+        }
+      }
+    }
+    .message-sidebar-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      .logout-button {
+        display: flex;
+        width: 100%;
+        height: 30px;
+        border: none;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: #333;
+        border-radius: 10px;
+        padding: 0.5rem;
+        justify-content: center;
+        transition: 0.5s ease all;
+        color: white;
+        &:hover {
+          background-color: #373a3f;
+          cursor: pointer;
         }
       }
     }

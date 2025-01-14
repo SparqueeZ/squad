@@ -59,7 +59,7 @@ const password = ref("12345");
 const mfa = ref("123465");
 const captchaToken = ref("");
 // const csrfToken = ref("");
-const reset = ref(false)
+const reset = ref(false);
 const router = useRouter();
 
 const resetPassword = async () => {
@@ -68,7 +68,7 @@ const resetPassword = async () => {
   } else {
     reset.value = true;
   }
-}
+};
 
 function validateInput(username, password) {
   const regexUsername = /^[\p{L}\p{N}\s]+$/u;
@@ -78,7 +78,7 @@ function validateInput(username, password) {
     return false;
   }
   return true;
-};
+}
 
 const login = async () => {
   // if (username.value && password.value && captchaToken.value) {
@@ -86,8 +86,6 @@ const login = async () => {
     if (!validateInput(username.value, password.value)) {
       e.preventDefault();
     }
-
-
 
     // This line is for testing without captcha
     // const response = await fetch(
@@ -110,7 +108,7 @@ const login = async () => {
       setTimeout(() => {
         console.log(user.username);
         if (user.username) {
-          router.push("/67562a9100035c1096e6ba9d");
+          router.push("/678623fe3d632d6cfa3d52ac");
         }
       }, 1000);
     } else {

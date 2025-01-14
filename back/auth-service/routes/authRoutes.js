@@ -24,7 +24,6 @@ const fileFilter = (req, file, cb) => {
     cb(new Error("Type de fichier non autorisé"));
   }
 };
-
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },

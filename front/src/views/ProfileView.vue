@@ -18,6 +18,9 @@
       <div class="profile-info">
         <h1 class="username">{{ user.username }}</h1>
         <p class="bio">{{ user.bio || "Aucune bio disponible." }}</p>
+        <button class="message-button" @click="createPrivateRoom">
+          Envoyer un message
+        </button>
       </div>
     </div>
 
@@ -28,24 +31,18 @@
         <div v-if="isUserProfile" class="info-item">
           <span class="label">Email :</span>
           <div class="container-input">
-            <span class="value">{{ user.email }}</span>
-            <input v-model="email" type="text" required class="input-field" />
+            <input
+              v-model="user.email"
+              type="text"
+              required
+              class="input-field"
+            />
             <button
               v-if="isUserProfile"
               class="edit-button"
               @click="updateEmail"
             >
               Modifier
-            </button>
-          </div>
-
-          <div class="info-item">
-            <button
-              v-if="isUserProfile"
-              :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`"
-              @click="mfaController"
-            >
-              MFA ?
             </button>
           </div>
         </div>
@@ -55,13 +52,22 @@
           <span class="value">{{
             isUserProfile ? user.createdAt : convertDate(user.createdAt)
           }}</span>
+        </div>
 
-          <div class="content-section">
-            <div
-              id="qr-code-container"
-              style="text-align: center; margin-top: 20px"
-            ></div>
-          </div>
+        <div class="info-item">
+          <button
+            v-if="isUserProfile"
+            :class="user.mfaStatus === true ? `mfa-true` : `mfa-false`"
+            @click="mfaController"
+          >
+            MFA ?
+          </button>
+        </div>
+        <div class="info-item">
+          <div
+            id="qr-code-container"
+            style="text-align: center; margin-top: 20px"
+          ></div>
         </div>
 
         <div class="content-section"></div>
@@ -76,9 +82,12 @@ import defaultAvatar from "../assets/img/default-avatar.jpg";
 import defaultBanner from "../assets/img/default-banner.jpg";
 import { useUserStore } from "@/stores/userStore";
 import { useRoute } from "vue-router";
+import { useRoomStore } from "@/stores/roomStore";
 import dayjs from "dayjs";
 const route = useRoute();
 const APIURL = import.meta.env.VITE_API_URL;
+
+const room = useRoomStore();
 
 const userStore = useUserStore();
 const user = ref({});
@@ -94,6 +103,26 @@ const updateEmail = async () => {
     userStore.updateEmail(email.value);
   } else {
     console.error("Champ d'entré vide");
+  }
+};
+
+const createPrivateRoom = async (senderId) => {
+  if (!senderId) return;
+  if (user._id === senderId) {
+    console.warn(
+      "Vous essayez de vous envoyer un message. privé, cela n'est pas possible"
+    );
+    return;
+  }
+  const response = await room.createPrivateRoom(
+    "Conversation",
+    "Conversation privée entre 2 utilsateurs.",
+    "discussion",
+    [senderId]
+  );
+  if (response) {
+    console.log("Room created :", response);
+    router.push(`/${response}`);
   }
 };
 
@@ -189,6 +218,25 @@ async function displayQRCode(qrCodeImage) {
     }
 
     .profile-info {
+      .message-button {
+        display: flex;
+        width: 100%;
+        height: 30px;
+        border: none;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: #333;
+        border-radius: 10px;
+        padding: 0.5rem;
+        justify-content: center;
+        transition: 0.5s ease all;
+        color: white;
+        &:hover {
+          background-color: #373a3f;
+          cursor: pointer;
+        }
+      }
+
       .username {
         font-size: 1.8rem;
         font-weight: bold;
