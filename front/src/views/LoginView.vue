@@ -54,9 +54,9 @@ const user = useUserStore();
 // const room = useRoomStore();
 const security = useSecurityStore();
 
-const username = ref("Baptiste");
-const password = ref("12345");
-const mfa = ref("123465");
+const username = ref("");
+const password = ref("");
+const mfa = ref("");
 const captchaToken = ref("");
 // const csrfToken = ref("");
 const reset = ref(false);

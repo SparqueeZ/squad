@@ -75,8 +75,7 @@
                 <video
                   :src="`${APIURL}/api/chat${message.filePath}`"
                   controls
-                  width="350"
-                  height="50"
+                  class="video-player"
                 >
                   Votre navigateur ne prend pas en charge la lecture des vidéos
                   au format WebM.
@@ -658,6 +657,17 @@ watch(
             object-fit: cover;
             border-radius: 10px;
             cursor: pointer;
+          }
+          .audio-message{
+            width: 100%;
+            .audio-player{
+              width: 90%;
+
+              .video-player{
+            width: 200px;
+            height: 50px;
+          }
+            }
           }
         }
         .message-infos {

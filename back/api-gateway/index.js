@@ -19,7 +19,7 @@ app.use(limiter);
 // Utilisation de CORS
 app.use(
   cors({
-    origin: "http://localhost",
+    origin: "http://10.8.0.5",
     credentials: true,
   })
 );
