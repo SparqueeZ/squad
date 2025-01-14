@@ -6,6 +6,9 @@
           <Icon name="search" />
           <input type="text" placeholder="Search" />
         </div>
+        <button class="creation-room" @click="createRoom">
+          <Icon name="add" />
+        </button>
       </div>
       <div class="message-sidebar-body">
         <div
@@ -92,6 +95,9 @@ import { ref, onMounted, onUnmounted, watchEffect } from "vue";
 import { useRoomStore } from "@/stores/roomStore";
 import { useUserStore } from "@/stores/userStore";
 import { useRouter } from "vue-router";
+import { usePopupStore } from "@/stores/popupStore";
+import createRoomPopup from "@/components/createRoomPopup.vue";
+const popupStore = usePopupStore();
 const router = useRouter();
 const user = useUserStore();
 const room = useRoomStore();
@@ -123,6 +129,10 @@ const getRelativeTime = (timestamp) => {
 
   return `${day}/${month} - ${hoursFormatted}:${minutesFormatted}`;
 };
+
+const createRoom = () => {
+  popupStore.openPopup(createRoomPopup);
+}
 
 const handleLogout = () => {
   if (user.logout()) router.push("/login");
@@ -163,7 +173,33 @@ const handleLogout = () => {
     flex-direction: column;
     gap: 2rem;
     .message-sidebar-header {
-      height: 50px;
+      height: fit-content;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      .creation-room {
+        display: flex;
+        width: 100%;
+        height: 30px;
+        border: none;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: #333;
+        border-radius: 10px;
+        padding: 0.5rem;
+        justify-content: center;
+        transition: 0.5s ease all;
+        .icon {
+          stroke: #fff;
+          justify-content: center;
+          display: flex;
+          align-items: center;
+        }
+        &:hover {
+          background-color: #373a3f;
+          cursor: pointer;
+        }
+      }
       .message-searchbar {
         display: flex;
         align-items: center;
@@ -181,6 +217,7 @@ const handleLogout = () => {
             outline: none;
           }
         }
+        
         .icon {
           display: flex;
           fill: transparent;
